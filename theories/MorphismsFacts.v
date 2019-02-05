@@ -108,7 +108,6 @@ Proof.
       * reflexivity.
       * intros; pupto2_final; eauto.
     + intros. pupto2_final. eauto.
->>>>>>> upstream/simplify-untaus
 Qed.
 
 Lemma interp_bind {E F R S}
