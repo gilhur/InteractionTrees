@@ -7,7 +7,7 @@ From Coq Require Import
 From Paco Require Import paco.
 
 From ITree Require Import
-     paco2_upto Core Morphisms Eq.Eq Eq.UpToTaus.
+     Core Morphisms Eq.Eq Eq.UpToTaus.
 
 (* Proof of
    [interp f (t >>= k) ~ (interp f t >>= fun r => interp f (k r))]
