@@ -4,7 +4,8 @@
 Require Import ExtLib.Structures.Functor.
 Require Import ExtLib.Structures.Applicative.
 Require Import ExtLib.Structures.Monad.
-
+Require Import Program.Tactics.
+        
 From ITree Require Import Basics.
 
 Set Implicit Arguments.
@@ -277,6 +278,17 @@ Instance ALoop_itree {E} : ALoop (itree E) :=
 
 (** ** Tactics *)
 
+(* begin hide *)
+(* TODO: Remove this tactic when UpToTausExplicit disappears *)
+(* GIL: Do note remove it. These are extremely useful tactics. *)
+Lemma hexploit_mp: forall P Q: Type, P -> (P -> Q) -> Q.
+Proof. intuition. Defined.
+Ltac hexploit x := eapply hexploit_mp; [eapply x|].
+
+Tactic Notation "hinduction" hyp(IND) "before" hyp(H)
+  := move IND before H; revert_until IND; induction IND.
+(* end hide *)
+
 (* [inv], [rewrite_everywhere], [..._except] are general purpose *)
 Ltac inv H := inversion H; clear H; subst.
 
@@ -288,8 +300,8 @@ Ltac rewrite_everywhere_except lem X :=
                  match H with X => fail 1 | _ => rewrite lem in H end
              end); repeat rewrite lem).
 
-Ltac genobs x ox := remember (observe x) as ox.
-Ltac genobs_clear x ox := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
+Tactic Notation "genobs" constr(x) ident(ox) := remember (observe x) as ox.
+Tactic Notation "genobs_clear" constr(x) ident(ox) := genobs x ox; match goal with [H: ox = observe x |- _] => clear H x end.
 Ltac simpobs := repeat match goal with [H: _ = observe _ |- _] =>
                     rewrite_everywhere_except (@eq_sym _ _ _ H) H
                 end.

@@ -41,33 +41,36 @@ Section EUTT.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
-Inductive euttF
-              (eutt: itree E R1 -> itree E R2 -> Prop)
-              (eutt0: itree E R1 -> itree E R2 -> Prop)
-  : itree' E R1 -> itree' E R2 -> Prop :=
+Inductive euttF (euttH eutt: itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
 | euttF_ret r1 r2
       (RBASE: RR r1 r2):
-    euttF eutt eutt0 (RetF r1) (RetF r2)
-| euttF_vis u (e : E u) k1 k2
-      (EUTTK: forall x, eutt (k1 x) (k2 x) \/ eutt0 (k1 x) (k2 x)):
-    euttF eutt eutt0 (VisF e k1) (VisF e k2)
+    euttF euttH eutt (RetF r1) (RetF r2)
 | euttF_tau_tau t1 t2
-      (EQTAUS: eutt0 t1 t2):
-    euttF eutt eutt0 (TauF t1) (TauF t2)
+      (EQTAUS: eutt t1 t2):
+    euttF euttH eutt (TauF t1) (TauF t2)
+| euttF_vis u (e : E u) k1 k2
+      (EUTTK: forall x, euttH (k1 x) (k2 x) \/ eutt (k1 x) (k2 x)):
+    euttF euttH eutt (VisF e k1) (VisF e k2)
 | euttF_tau_left t1 ot2
-      (EQTAUS: euttF eutt eutt0 (observe t1) ot2):
-    euttF eutt eutt0 (TauF t1) ot2
+      (EQTAUS: euttF euttH eutt (observe t1) ot2):
+    euttF euttH eutt (TauF t1) ot2
 | euttF_tau_right ot1 t2
-      (EQTAUS: euttF eutt eutt0 ot1 (observe t2)):
-    euttF eutt eutt0 ot1 (TauF t2)
+      (EQTAUS: euttF euttH eutt ot1 (observe t2)):
+    euttF euttH eutt ot1 (TauF t2)
 .
 Hint Constructors euttF.
 
-Definition eutt0_ eutt eutt0 t1 t2 := euttF eutt eutt0 (observe t1) (observe t2).
-Hint Unfold eutt0_.
+Definition eutt_ eutt t1 t2 := euttF bot2 eutt (observe t1) (observe t2).
+Hint Unfold eutt_.
 
-Definition eutt0 eutt t1 t2 := gcpn2 (eutt0_ eutt) bot2 bot2 t1 t2.
-Hint Unfold eutt0.
+(* We now take the greatest fixpoint of [eutt_]. *)
+
+(* Equivalence Up To Taus.
+
+   [eutt t1 t2]: [t1] is equivalent to [t2] up to taus. *)
+
+Definition eutt t1 t2 := gcpn2 eutt_ bot2 bot2 t1 t2.
+Hint Unfold eutt.
 
 Lemma euttF_mon r r' s s' x y
     (EUTT: euttF r s x y)
@@ -79,24 +82,12 @@ Proof.
   econstructor; intros. edestruct EUTTK; eauto.
 Qed.
 
-Lemma monotone_eutt0_ eutt : monotone2 (eutt0_ eutt).
-Proof. repeat intro. eauto using euttF_mon. Qed.
-Hint Resolve monotone_eutt0_ : paco.
-
-Lemma monotone_eutt0 : monotone2 eutt0.
-Proof. red. intros. eapply gcpn2_mon_bot; eauto using euttF_mon. Qed.
-Hint Resolve monotone_eutt0 : paco.
-
-(* We now take the greatest fixpoint of [eutt_]. *)
-
-(* Equivalence Up To Taus.
-
-   [eutt t1 t2]: [t1] is equivalent to [t2] up to taus. *)
-Definition eutt : itree E R1 -> itree E R2 -> Prop := gcpn2 eutt0 bot2 bot2.
-Hint Unfold eutt.
+Lemma monotone_eutt_ : monotone2 eutt_.
+Proof. red; intros. eapply euttF_mon; eauto. Qed.
+Hint Resolve monotone_eutt_ : paco.
 
 Lemma eutt_fold :
-  eutt <2= gcpn2 eutt0 bot2 bot2.
+  eutt <2= gcpn2 eutt_ bot2 bot2.
 Proof. intros. apply PR. Qed.
 Hint Resolve eutt_fold.
 
@@ -105,11 +96,9 @@ Global Arguments eutt t1%itree t2%itree.
 End EUTT.
 
 Hint Constructors euttF.
-Hint Unfold eutt0_.
-Hint Unfold eutt0.
-Hint Resolve monotone_eutt0_ : paco.
-Hint Resolve monotone_eutt0 : paco.
+Hint Unfold eutt_.
 Hint Unfold eutt.
+Hint Resolve monotone_eutt_ : paco.
 Hint Resolve eutt_fold.
 
 Infix "≈" := (eutt eq) (at level 70) : itree_scope.

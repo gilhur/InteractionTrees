@@ -66,6 +66,9 @@ Proof. induction 1; eauto. Qed.
 Lemma unalltaus_notau ot ot' : unalltausF ot ot' -> notauF ot'.
 Proof. intros. induction H; eauto. Qed.
 
+Lemma notau_dec (ot: itree' E R) : (~ notauF ot) \/ notauF ot.
+Proof. destruct ot; simpl; eauto. Qed.
+
 Lemma notau_tau I (ot : itreeF E R I) (t0 : I)
   (NOTAU : notauF ot)
   (OBS: TauF t0 = ot): False.

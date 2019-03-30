@@ -27,37 +27,20 @@ Section EUTT_homo.
 
 Context {E : Type -> Type} {R : Type} (RR : R -> R -> Prop).
 
-Global Instance subrelation_eq_eutt0 eutt :
-  @subrelation (itree E R) (eq_itree RR) (eutt0 RR eutt).
+Global Instance subrelation_eq_eutt :
+  @subrelation (itree E R) (eq_itree RR) (eutt RR).
 Proof.
   gcofix CIH; gstep. intros.
   gunfold H0. repeat red in H0 |- *. inv H0; eauto 7 with paco.
 Qed.
 
-Global Instance subrelation_eq_eutt :
-  @subrelation (itree E R) (eq_itree RR) (eutt RR).
-Proof.
-  gstep. gcofix CIH'; gstep. intros.
-  gunfold H0. repeat red in H0 |- *. inv H0; eauto 7 with paco.
-Qed.
-
-Global Instance Reflexive_eutt0_param `{Reflexive _ RR} eutt
-       (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (gcpn2 (eutt0_ RR eutt) r rg).
-Proof.
-  repeat intro.
-  eapply gcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.
-  revert x. gcofix CIH; gstep. red; intros.
-  destruct (observe x); eauto 7 with paco.
-Qed.
-
 Global Instance Reflexive_eutt_param `{Reflexive _ RR}
        (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (gcpn2 (eutt0 RR) r rg).
+  Reflexive (gcpn2 (eutt_ RR) r rg).
 Proof.
   repeat intro.
   eapply gcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.
-  revert x. gstep. gcofix CIH; gstep. intros. repeat red.
+  revert x. gcofix CIH; gstep. intros. repeat red.
   destruct (observe x); eauto 7 with paco.
 Qed.
 
@@ -86,53 +69,32 @@ Lemma Symmetric_eutt_hetero {R1 R2}
   forall (t1 : itree E R1) (t2 : itree E R2),
     eutt RR1 t1 t2 -> eutt RR2 t2 t1.
 Proof.
-  gstep. gcofix CIH; gstep. intros.
-  do 2 gunfold H0.
+  gcofix CIH; gstep. intros.
+  gunfold H0.
   repeat red in H0 |- *.
   induction H0; eauto 7 with paco.
   econstructor; intros.
   edestruct EUTTK as [TMP | TMP]; [eauto 7 with paco|].
-  right. gbase. apply CIH. gstep. eauto.
+  right. gbase. apply CIH. eauto.
 Qed.
-
-Lemma euttF_elim_tau_left {R1 R2} (RR: R1 -> R2 -> Prop) r (t1: itree E R1) (t2: itree E R2)
-    (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) (Tau t1) t2) :
-  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
-Proof.
-  repeat red in REL |- *. simpl in *.
-  remember (TauF t1) as ott1.
-  move REL before r. revert_until REL.
-  induction REL; intros; subst; try dependent destruction Heqott1; eauto.
-  gunfold EQTAUS. eauto.
-Qed.
-
-Lemma euttF_elim_tau_right {R1 R2} (RR: R1 -> R2 -> Prop) r (t1: itree E R1) (t2: itree E R2)
-    (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 (Tau t2)) :
-  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
-Proof.
-  repeat red in REL |- *. simpl in *.
-  remember (TauF t2) as ott2.
-  move REL before r. revert_until REL.
-  induction REL; intros; subst; try dependent destruction Heqott2; eauto.
-  gunfold EQTAUS. eauto.
-Qed.
-
-Definition isb_tau {E R} (ot: itree' E R) : bool :=
-  match ot with | TauF _ => true | _ => false end.
 
 Lemma eutt_Ret {R1 R2} (RR: R1 -> R2 -> Prop) x y :
   RR x y -> @eutt E R1 R2 RR (Ret x) (Ret y).
 Proof.
-  intros; gstep. gstep. econstructor. eauto.
+  intros; gstep. econstructor. eauto.
 Qed.
 
 Lemma eutt_Vis {R1 R2 U} RR (e: E U) k k' :
   (forall x: U, @eutt E R1 R2 RR (k x) (k' x)) ->
   eutt RR (Vis e k) (Vis e k').
 Proof.
-  intros. gstep. gstep. econstructor.
-  intros. left. apply H.
+  intros. gstep. econstructor.
+  intros. right. apply H.
 Qed.
+
+Definition rcomp {R1 R2 R3} (RR1: R1 -> R2 -> Prop) (RR2: R2 -> R3 -> Prop) :=
+  fun r1 r3 => exists r2, RR1 r1 r2 /\ RR2 r2 r3.
+Hint Unfold rcomp.
 
 End EUTT_hetero.
 
@@ -162,19 +124,19 @@ Proof. intros ? ? []; eauto. Qed.
 
 Global Instance eutt_cong_observe : Proper (eutt ==> going eutt) observe.
 Proof.
-  constructor. do 2 gstep. do 2 gunfold H. auto.
+  constructor. gstep. gunfold H. auto.
 Qed.
 
 Global Instance eutt_cong_tauF : Proper (eutt ==> going eutt) (@TauF _ _ _).
 Proof.
-  constructor. do 2 gstep. econstructor. gunfold H. eauto.
+  constructor. gstep. econstructor. eauto.
 Qed.
 
 Global Instance eutt_cong_VisF {u} (e: E u) :
   Proper (pointwise_relation _ eutt ==> going eutt) (VisF e).
 Proof.
-  constructor. gstep. gstep. econstructor.
-  intros. specialize (H x0). gunfold H. eauto.
+  constructor. gstep. econstructor.
+  intros. specialize (H x0). eauto.
 Qed.
 
 End EUTT_eq.
@@ -183,7 +145,7 @@ Lemma eutt_tau {E R1 R2} (RR : R1 -> R2 -> Prop)
            (t1 : itree E R1) (t2 : itree E R2) :
   eutt RR t1 t2 -> eutt RR (Tau t1) (Tau t2).
 Proof.
-  intros. gstep. gstep. econstructor. gunfold H. eauto.
+  intros. gstep. econstructor. eauto.
 Qed.
 
 Lemma eutt_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
@@ -192,10 +154,10 @@ Lemma eutt_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
   eutt RR (Vis e k1) (Vis e k2).
 Proof.
   split.
-  - intros. gstep; gstep; econstructor.
-    intros x; specialize (H x). gunfold H. eauto.
+  - intros. gstep; econstructor.
+    intros x; specialize (H x). eauto.
   - intros H x.
-    gunfold H; gunfold H; inversion H; auto_inj_pair2; subst.
+    gunfold H; inversion H; auto_inj_pair2; subst.
     edestruct EUTTK; eauto with paco.
 Qed.
 
@@ -203,8 +165,8 @@ Lemma eutt_ret {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
   @eutt E R1 R2 RR (Ret r1) (Ret r2) <-> RR r1 r2.
 Proof.
   split.
-  - intros H. gunfold H; gunfold H; inversion H; auto.
-  - intros. gstep; gstep; econstructor. auto.
+  - intros H. gunfold H; inversion H; auto.
+  - intros. gstep; econstructor. auto.
 Qed.
 
 Global Instance eutt_when {E} (b : bool) :
@@ -223,24 +185,8 @@ Qed.
 
 Lemma tau_eutt {E R} (t: itree E R) : Tau t ≈ t.
 Proof.
-  gstep. gstep. econstructor.
+  gstep. econstructor.
   destruct (observe t); eauto with paco.
   - constructor. apply reflexivity.
-  - constructor. intros. left. apply reflexivity.
+  - constructor. intros. right. apply reflexivity.
 Qed.
-
-(** ** Tactics *)
-
-(** Remove all taus from the left hand side of the goal
-    (assumed to be of the form [lhs ≈ rhs]). *)
-Ltac tau_steps :=
-  repeat (
-      (* Only rewrite the LHS, even if it also occurs in the RHS *)
-      rewrite itree_eta at 1;
-      cbn;
-      match goal with
-      | [ |- go (observe _) ≈ _ ] =>
-        (* Cancel [itree_eta] if no progress was made. *)
-        fail 1
-      | _ => try rewrite tau_eutt
-      end).

@@ -459,6 +459,13 @@ Proof.
   split; apply eq_itree_gcpn_; auto using symmetry.
 Qed.
 
+Lemma simpobs {E R ot} {t1: itree E R}
+      (EQ: ot = observe t1):
+  t1 ≅ go ot.
+Proof.
+  gstep. red. simpl. simpobs. apply reflexivity.
+Qed.
+
 Lemma bind_ret2 {E R} :
   forall s : itree E R,
     ITree.bind s (fun x => Ret x) ≅ s.
