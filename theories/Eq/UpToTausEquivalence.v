@@ -51,6 +51,15 @@ Lemma rsnd_mon r r' t1 t2
   rsnd r' t1 t2.
 Proof. apply LE, IN. Qed.
 
+Lemma rpair_mon r s r' s' p
+      (IN: rpair r s p)
+      (LEr: r <2= r')
+      (LEs: s <2= s'):
+  rpair r' s' p.
+Proof.
+  destruct p, p; eauto.
+Qed.
+
 Lemma rpair_bot: rpair bot2 bot2 <1= bot1.
 Proof.
   intros. destruct x0, p; contradiction.
@@ -61,16 +70,13 @@ Hint Resolve rfst_mon rsnd_mon : paco.
 End EUTT_REL.
 
 Hint Unfold rpair rfst rsnd.
-Hint Resolve rfst_mon rsnd_mon : paco.
+Hint Resolve rfst_mon rsnd_mon rpair_mon : paco.
 
 Section EUTTG.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
 Inductive euttHF (euttH euttL: itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
-| euttHF_vis u (e : E u) k1 k2
-      (EUTTK: forall x, euttH (k1 x) (k2 x)):
-    euttHF euttH euttL (VisF e k1) (VisF e k2)
 | euttHF_lower ot1 ot2 t1' t2'
       (EQ1: go ot1 ≈ t1')
       (EQ2: go ot2 ≈ t2')
@@ -234,10 +240,8 @@ Proof.
   revert p REL. gcofix CIH. intros.
   gstep. gunfold REL. destruct p, p; repeat red.
   - inv REL.
-    + econstructor. intros. gbase. apply (CIH (inl (_,_))).
-      apply EUTTK.
-    + econstructor; eauto. gbase. apply (CIH (inr (_,_))).
-      eauto using rfst_mon, rsnd_mon, gcpn1_mon_bot with paco.
+    econstructor; eauto. gbase. apply (CIH (inr (_,_))).
+    eauto using rfst_mon, rsnd_mon, gcpn1_mon_bot with paco.
   - repeat red in REL.
     hinduction REL before CIH; eauto.
     + econstructor. gbase. apply (CIH (inr (_,_))).
@@ -336,12 +340,8 @@ Lemma euttHF_elim_tauL t1 ot2 clo r
   @euttHF E R1 R2 (rfst (rclo1 (euttG_ RR) clo r)) (rsnd (rclo1 (euttG_ RR) clo r)) (TauF t1) ot2.
 Proof.
   inv IN.
-  - econstructor.
-    + rewrite tau_eutt, (simpobs H0). reflexivity.
-    + reflexivity.
-    + apply rclo1_step. econstructor. eauto.
-  - econstructor; eauto.
-    rewrite <-EQ1, <-itree_eta, tau_eutt. reflexivity.
+  econstructor; eauto.
+  rewrite <-EQ1, <-itree_eta, tau_eutt. reflexivity.
 Qed.
 
 Lemma euttHF_elim_tauR t2 ot1 clo r
@@ -349,12 +349,8 @@ Lemma euttHF_elim_tauR t2 ot1 clo r
   @euttHF E R1 R2 (rfst (rclo1 (euttG_ RR) clo r)) (rsnd (rclo1 (euttG_ RR) clo r)) ot1 (TauF t2).
 Proof.
   inv IN.
-  - econstructor.
-    + reflexivity.    
-    + rewrite tau_eutt, (simpobs H1). reflexivity.
-    + apply rclo1_step. econstructor. eauto.
-  - econstructor; eauto.
-    rewrite <-EQ2, <-itree_eta, tau_eutt. reflexivity.
+  econstructor; eauto.
+  rewrite <-EQ2, <-itree_eta, tau_eutt. reflexivity.
 Qed.
 
 End EUTTG_Lemmas.
@@ -389,16 +385,10 @@ Proof.
   ucompat. constructor; [pmonauto|].
   intros. destruct PR.
   { inv REL.
-    - econstructor.
-      + rewrite <-itree_eta, EQVL. reflexivity.
-      + rewrite <-itree_eta, EQVR. reflexivity.
-      + apply rclo1_step. repeat red. simpobs.
-        econstructor. intros.
-        left. apply rclo1_base. apply EUTTK.
-    - econstructor; cycle -1.
-      + apply rclo1_base. apply RBASE.      
-      + rewrite EQVL, EQ1. reflexivity.
-      + rewrite EQVR, EQ2. reflexivity.
+    econstructor; cycle -1.
+    + apply rclo1_base. apply RBASE.      
+    + rewrite EQVL, EQ1. reflexivity.
+    + rewrite EQVR, EQ2. reflexivity.
   }
   { gunfold EQVL. gunfold EQVR. red in EQVL, EQVR. repeat red. repeat red in REL.
     genobs_clear t1 ot1. genobs_clear t2 ot2. genobs_clear t3 ot3. genobs_clear t4 ot4.
@@ -475,14 +465,10 @@ Proof.
     }
     (* RET *)
     { specialize (REL _ _ IN). inv REL.
-      - econstructor.
-        + rewrite <-itree_eta, bind_ret, (simpobs H0). reflexivity.
-        + rewrite <-itree_eta, bind_ret, (simpobs H). reflexivity.
-        + apply rclo1_step. econstructor. eauto with paco rclo.
-      - econstructor; cycle -1.
-        * eauto with rclo paco.
-        * rewrite <-EQ1, <-!itree_eta, bind_ret. reflexivity.
-        * rewrite <-EQ2, <-!itree_eta, bind_ret. reflexivity.
+      econstructor; cycle -1.
+      * eauto with rclo paco.
+      * rewrite <-EQ1, <-!itree_eta, bind_ret. reflexivity.
+      * rewrite <-EQ2, <-!itree_eta, bind_ret. reflexivity.
     }
     (* VIS *)
     { econstructor.
@@ -642,30 +628,6 @@ Proof.
   revert_until RR. gcofix CIH.
 
   (*
-    VIS case
-   *)
-  assert (VIS: forall t1 t2 U e (k1: U -> _) k2
-                  (EQ1 : t1 ≈ Vis e k1)
-                  (EQ2 : t2 ≈ Vis e k2)
-                  (EUTTK : forall x,
-                      gcpn1 (euttG_ RR) bot1 bot1 (inl (k1 x, k2 x)) \/
-                      gcpn1 (euttG_ RR) bot1 bot1 (inr (k1 x, k2 x))),
-             gcpn2 (eutt_ RR) bot2 r t1 t2).
-  { intros. symmetry in EQ1. symmetry in EQ2.
-    hexploit @eutt_unalltaus_vis; try apply EQ1; try red; simpobs; simpl; eauto.
-    intros [k'1 [UNT'1 EQ'1]]. rewrite (itree_eta' (VisF _ _)) in UNT'1.
-    hexploit @eutt_unalltaus_vis; try apply EQ2; try red; simpobs; simpl; eauto.
-    intros [k'2 [UNT'2 EQ'2]]. rewrite (itree_eta' (VisF _ _)) in UNT'2.
-    gclo eutt_clo_tausL. econstructor; [apply UNT'1|].
-    gclo eutt_clo_tausR. econstructor; [apply UNT'2|].
-    gstep. econstructor. intros. right.
-    gbase. eapply CIH; eauto.
-    destruct (EUTTK x).
-    - left. apply euttH_bot. eauto.
-    - right. apply euttL_bot. eauto.
-  }
-    
-  (*
     euttL
    *)
   assert (EUTTL: forall t1 t2 t1' t2'
@@ -683,7 +645,7 @@ Proof.
       gclo eutt_clo_tausR. econstructor; [apply UNT'2|].
       gstep. econstructor. eauto.
     }
-    { clear VIS. apply euttL_bot in EQTAUS.
+    { apply euttL_bot in EQTAUS.
       assert (EUTT1: t1 ≈ t1').
       { rewrite <-EQ1, (simpobs Heqot1), tau_eutt. reflexivity. }
       assert (EUTT2: t2 ≈ t2').
@@ -744,9 +706,17 @@ Proof.
           + edestruct EUTTK0; eauto; try contradiction.
       }
     }
-    { eapply VIS; eauto.
-      + rewrite Heqot1, <-itree_eta, EQ1. reflexivity.
-      + rewrite Heqot2, <-itree_eta, EQ2. reflexivity.
+    { hexploit @eutt_unalltaus_vis; try apply EQ1; try red; simpobs; simpl; eauto.
+      intros [k'1 [UNT'1 EQ'1]]. rewrite (itree_eta' (VisF _ _)) in UNT'1.
+      hexploit @eutt_unalltaus_vis; try apply EQ2; try red; simpobs; simpl; eauto.
+      intros [k'2 [UNT'2 EQ'2]]. rewrite (itree_eta' (VisF _ _)) in UNT'2.
+      gclo eutt_clo_tausL. econstructor; [apply UNT'1|].
+      gclo eutt_clo_tausR. econstructor; [apply UNT'2|].
+      gstep. econstructor. intros. right.
+      gbase. eapply CIH; eauto.
+      destruct (EUTTK x).
+      - left. apply euttH_bot. eauto.
+      - right. apply euttL_bot. eauto.
     }
     { eapply IHIN; cycle -2; eauto.
       rewrite <-EQ1, (simpobs Heqot1), tau_eutt. reflexivity.
@@ -756,23 +726,17 @@ Proof.
     }
   }
 
-  intros. destruct IN as [IN | IN]; eauto.
+  intros. destruct IN as [IN | IN]; [|eapply EUTTL; eauto].
   
   (*
     euttH
    *)
   eapply gcpn1_mon in IN; try apply rpair_bot; eauto with paco.
   gunfold IN. inv IN.
-  { eapply VIS.
-    + rewrite H0, <-itree_eta, EQ1. reflexivity.
-    + rewrite H, <-itree_eta, EQ2. reflexivity.
-    + left. apply EUTTK.
-  }
-  { apply euttL_bot in RBASE.
-    eapply EUTTL, RBASE.
-    - rewrite <-EQ0, <-itree_eta. eauto.
-    - rewrite <-EQ3, <-itree_eta. eauto.
-  }
+  apply euttL_bot in RBASE.
+  eapply EUTTL, RBASE.
+  - rewrite <-EQ0, <-itree_eta. eauto.
+  - rewrite <-EQ3, <-itree_eta. eauto.
 Qed.
 
 Lemma eutt_impl_euttL t1 t2
@@ -801,6 +765,341 @@ Proof.
   eapply euttLH_impl_eutt; eauto; reflexivity.
 Qed.
 
+
+
+
+(* Test *)
+
+
+(* Lemma euttL_fix h hg r rg x *)
+(*       (LEh: h <2= hg) (LEr: r <2= rg) *)
+(*       (EQ: x <2= euttL RR h (x \2/ hg) r (x \2/ rg)): *)
+(*   x <2= @euttL E R1 R2 RR h hg r rg. *)
+(* Proof. *)
+(*   cut (rpair x x <1= euttG RR (rpair h r) (rpair hg rg)). *)
+(*   { intros. apply H. eauto. } *)
+
+(*   gcofix CIH. *)
+(*   intros. destruct x1, p. *)
+(*   - gstep. econstructor; try (rewrite <-itree_eta; reflexivity). *)
+(*     eapply gcpn1_mon; try apply EQ; eauto with paco. *)
+(*     intros. destruct x0, p; simpl in *; destruct PR0; eauto. *)
+(*   - eapply gcpn1_mon; try apply EQ; eauto with paco. *)
+(*     intros. destruct x0, p; simpl in *; destruct PR0; eauto. *)
+(* Qed. *)
+
+(* Lemma euttH_fix h hg r rg x *)
+(*       (LEh: h <2= hg) (LEr: r <2= rg) *)
+(*       (EQ: x <2= euttH RR h (x \2/ hg) (h \2/ r) rg): *)
+(*   x <2= @euttH E R1 R2 RR h hg r rg. *)
+(* Proof. *)
+(*   cut (rpair x x <1= euttG RR (rpair h r) (rpair hg rg)). *)
+(*   { intros. apply H. eauto. } *)
+
+(*   gcofix CIH; eauto using rpair_mon. *)
+(*   intros. destruct x1, p. *)
+(*   - gstep. econstructor; try (rewrite <-itree_eta; reflexivity). *)
+(*     eapply gcpn1_mon; try apply EQ; eauto using rpair_mon with paco. *)
+(*     intros. destruct x0, p; simpl in *; destruct PR0; eauto. *)
+(*   - eapply gcpn1_mon; try apply EQ; eauto with paco. *)
+(*     intros. destruct x0, p; simpl in *; destruct PR0; eauto. *)
+(* Qed. *)
+
+(* Lemma foo r r' *)
+(*       (LE: rsnd r <2= rfst r'): *)
+(*   rsnd (cpn1 (euttG_ RR) r) <2= rfst (cpn1 (@euttG_ E R1 R2 RR) r'). *)
+(* Proof. *)
+(*   intros. repeat red  *)
+  
+(*   ucofix CIH. *)
+(*   intros. *)
+(*   econstructor; cycle -1. *)
+(*   - repeat red. repeat red in PR. *)
+
+
+    
+(*   - rewrite <-itree_eta. reflexivity. *)
+(*   - rewrite <-itree
+_eta. reflexivity. *)
+(* Qed. *)
+
+(* Inductive clo_euttG_euttL (r: eutt_rel) : @eutt_rel E R1 R2 := *)
+(* | clo_euttL_intro t1 t2  *)
+(*       (REL: euttL RR (rfst r) (rfst r) (rfst r) (rfst r) t1 t2) : *)
+(*   clo_euttG_euttL r (inl(t1,t2)) *)
+(* . *)
+(* Hint Constructors clo_euttG_euttL. *)
+
+(* Lemma euttG_clo_euttL: clo_euttG_euttL <2= cpn1 (euttG_ RR). *)
+(* Proof. *)
+(*   ucompat. econstructor. admit. *)
+(*   intros. destruct PR. *)
+(*   repeat red. repeat red in REL. *)
+  
+  
+
+(*   econstructor; try (rewrite <-itree_eta; reflexivity). *)
+(*   repeat red. *)
+(*   apply rclo1_clo.  *)
+  
+(*   apply rclo1_step. *)
+(*   repeat red. repeat red in REL. *)
+
+  
+  
+  
+  
+(*   ucpn. *)
+(*   ustep.  *)
+(*   eapply cpn1_mon; eauto. *)
+(*   intros. *)
+(*   destruct PR. *)
+(*   - destruct x1, p; simpl in *. *)
+(*     + ubase. eauto. *)
+(*     +  *)
+  
+  
+(* Qed. *)
+
+(* Lemma euttH_lower r: *)
+(*   euttL RR r r r r <2= @euttH E _ _ RR r r bot2 bot2. *)
+(* Proof. *)
+(*   gcofix CIH. *)
+(*   intros. *)
+
+(*   repeat red in PR. *)
+(*   repeat red. *)
+(*   destruct PR. *)
+(*   econstructor. *)
+  
+(* Qed.   *)
+
+Inductive clo_trans (h: itree E R1 -> itree E R2 -> Prop) t1 t2 : Prop :=
+| clo_trans_ t1' t2'  
+             (EQ1: t1 ≈ t1')
+             (EQ2: t2 ≈ t2')
+             (REL: h t1' t2')
+.
+Hint Constructors clo_trans.
+
+Axiom foo: forall r,
+    cpn1 (euttG_ RR) r <1=
+    (rpair (clo_trans (rfst r)) (clo_trans (rsnd r)) \1/ fcpn1 (euttG_ RR) r).
+
+Lemma euttH_lower h r:
+  euttL RR h h (r \2/ h) (r \2/ h) <2= @euttH E _ _ RR h h r r.
+Proof.
+  gcofix CIH.  
+  intros.
+  destruct PR.
+  eapply foo in IN.
+  destruct IN; simpl in *.
+  - destruct H.
+    gclo euttG_clo_trans. econstructor; eauto.
+    destruct REL.
+    + destruct H.
+      * gstep. econstructor; try (rewrite <-itree_eta; reflexivity).
+        eauto with paco.
+      * eauto with paco.
+    + repeat red in H.
+      gstep. repeat red.
+      inv H.
+      * econstructor; try reflexivity.
+        gstep. econstructor. eauto.
+      * econstructor; try reflexivity.
+        red in EQTAUS.
+        red.
+        admit.
+      * admit.
+      * admit.
+      * admit.
+  - admit.
+
+  EQ1 : x1 ≈ t1'
+  EQ2 : x2 ≈ t2'
+  H : euttF RR
+      (rfst (cpn1 (euttG_ RR) (rpair h (r \2/ h))))
+      (rsnd (cpn1 (euttG_ RR) (rpair h (r \2/ h))))
+      (observe t1') 
+      (observe t2')
+  ============================
+  gcpn1 (euttG_ RR) (rpair h r) r0 (inl (t1', t2'))
+
+  H : euttF RR
+      (rfst (cpn1 (euttG_ RR) (rpair h (r \2/ h))))
+      (rsnd (cpn1 (euttG_ RR) (rpair h (r \2/ h))))
+      (observe t1) (observe t2)
+  ============================
+  gcpn1 (euttG_ RR) (rpair h r) r0 (inl (t1, t2))
+    
+    
+  intros.
+
+  repeat red in PR.
+  repeat red.
+  destruct PR.
+  econstructor.
+
+
+  
+  
+  
+  repeat red.
+  destruct PR.
+
+
+
+
+
+
+  
+  gclo euttG_clo_euttL. econstructor.
+  eapply gcpn1_mon; eauto with paco; intros.
+  - destruct x2, p; simpl in *.
+    + red. gbase. simpl.
+      
+  
+  
+
+  x <2= euttL h h h h
+  x <2= euttH h h bot bot
+
+
+  euttL r r r r               
+  
+  euttL (h \/ rg) <= euttL h 
+
+        
+  x <= euttH h hg r rg
+
+
+
+
+  cut ((clo_trans h \2/ x) <2= euttL RR hg hg rg rg).
+  { intros. gstep. econstructor; try (rewrite <-itree_eta; reflexivity).
+    eapply H. eauto.
+  }
+
+  gcofix CIH.
+  intros. destruct PR; cycle 1.
+  - eapply IN in H.
+    eapply gcpn1_mon; eauto with paco.
+    intros. destruct x0, p.
+    
+
+
+
+
+    
+  intros. gstep. econstructor.
+  
+
+  
+  
+  euttL (ret 1,ret 2) (ret1, ret 2) bot2 bot  
+  
+  euttH (ret 1,ret 2) (ret 1, ret 2) bot bot   (ret 1, ret 2)
+  
+  x\/clo(h) <= euttL hg hg rg (x\/clo(h) \/ rg)
+  x\/clo(h) <= euttL hg hg rg rg
+  x\/h <= euttH h hg r rg
+  x   <= euttH h hg r rg                            
+
+
+
+
+  
+
+  
+  intros. gstep. econstructor; try (rewrite <-itree_eta; reflexivity).
+  revert x0 x1 PR.
+  gcofix CIH. intros.
+  eapply gcpn1_mon. eauto with paco. eapply IN.
+    
+  
+  
+  (* intros. repeat red. repeat red in PR. *)
+  (* destruct PR. *)
+  (* constructor. *)
+  (* cut1 (cpn1 (euttG_ RR) (rpair h (h \2/ r) \1/ fcpn1 (euttG_ RR) (rpair hg rg)) (inl (x0,x1))  (inl (x0,x1))  *)
+
+  (* intros. destruct H. econstructor. *)
+
+  
+  
+  revert t1 t2.
+  gcofix CIH. intros. destruct H0.
+  gcpn. eapply cpn1_mon; eauto.
+  intros.
+  destruct PR; eauto with paco.
+  econstructor.
+  ubase. right.
+  eapply fcpn1_mon; eauto with paco.
+  intros.
+  destruct x1, p; simpl in *; eauto.
+  destruct PR; eauto.
+  eapply CIH.
+  
+  
+
+  
+  gcofix CIH. intros.
+  destruct PR. gcpn. eapply cpn1_mon; eauto.
+
+  intros. destruct x0, p.
+  - destruct PR; simpl in *; eauto with paco.
+    
+    
+    repeat red in H.
+    gstep. repeat red.
+    eapply euttHF_mon; eauto; intros.
+    + eapply rfst_mon; eauto. intros.
+      gcpn. eapply cpn1_mon; eauto with paco.
+    + eapply rsnd_mon; eauto. intros.
+      gcpn. eapply cpn1_mon; eauto with paco.
+  - destruct PR; simpl in *.
+    + destruct H; eauto with paco.
+      
+      
+
+
+  repeat red.
+  repeat red in EQ.
+  specialize (EQ _ _ PR).
+  destruct EQ.
+  econstructor.
+  
+euttL (h \2/ r)                       hg r rg
+  
+euttH (h \2/ euttL h hg r rg) hg r rg  
+
+
+  eapply cpn1_mon; eauto. intros.
+  destruct PR.
+  - destruct x0, p; simpl in *.
+    + ubase. left. simpl. eauto.
+    + destruct H.
+      * 
+
+  
+  destruct EQ. econstructor.
+  
+  
+  
+  eapply cpn1_mon; cycle 1.
+  { intros. gstep. 
+    econstructor.
+
+
+    try rewrite <-itree_eta; try reflexivity.
+  repeat red in EQ. repeat red.
+  
+  
+Qed.
+
+
+
+  
 End EUTTG_correct.
 
 
