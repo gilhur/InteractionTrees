@@ -886,12 +886,16 @@ Axiom foo: forall r,
     cpn1 (euttG_ RR) r <1=
     (rpair (clo_trans (rfst r)) (clo_trans (rsnd r)) \1/ fcpn1 (euttG_ RR) r).
 
-Lemma euttH_lower h r:
-  euttL RR h h (r \2/ h) (r \2/ h) <2= @euttH E _ _ RR h h r r.
+Lemma euttH_lower h:
+  euttL RR h h h h <2= @euttH E _ _ RR h h bot2 bot2.
 Proof.
-  gcofix CIH.  
+  (* gcofix CIH.   *)
   intros.
   destruct PR.
+  econstructor.
+  ustep.
+  
+  
   eapply foo in IN.
   destruct IN; simpl in *.
   - destruct H.
