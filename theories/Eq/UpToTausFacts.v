@@ -58,16 +58,16 @@ Section EUTT_upto.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
   
-Inductive clo_eutt_tausL (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
+Inductive tausL_clo (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
 | clo_eutt_taus_left t1 t1' t2
       (UNT: untaus t1 t1')
       (REL: r t1' t2) :
-    clo_eutt_tausL r t1 t2
+    tausL_clo r t1 t2
 .
-Hint Constructors clo_eutt_tausL.
+Hint Constructors tausL_clo.
 
 Lemma eutt_clo_tausL:
-  clo_eutt_tausL <3= cpn2 (eutt_ RR).
+  tausL_clo <3= cpn2 (eutt_ RR).
 Proof.
   ucompat. econstructor; [pmonauto|].
   intros. destruct PR.
@@ -76,16 +76,16 @@ Proof.
   + subst. eauto.
 Qed.
 
-Inductive clo_eutt_tausR (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
+Inductive tausR_clo (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
 | clo_eutt_taus_right t1 t2 t2'
       (UNT: untaus t2 t2')
       (REL: r t1 t2') :
-  clo_eutt_tausR r t1 t2
+  tausR_clo r t1 t2
 .
-Hint Constructors clo_eutt_tausR.
+Hint Constructors tausR_clo.
 
 Lemma eutt_clo_tausR:
-  clo_eutt_tausR <3= cpn2 (eutt_ RR).
+  tausR_clo <3= cpn2 (eutt_ RR).
 Proof.
   ucompat. econstructor; [pmonauto|].
   intros. destruct PR.
