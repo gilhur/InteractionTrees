@@ -41,26 +41,26 @@ Section EUTT.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
-Inductive euttF (euttH eutt: itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
+Inductive euttF (eutt: itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
 | euttF_ret r1 r2
       (RBASE: RR r1 r2):
-    euttF euttH eutt (RetF r1) (RetF r2)
+    euttF eutt (RetF r1) (RetF r2)
 | euttF_tau_tau t1 t2
       (EQTAUS: eutt t1 t2):
-    euttF euttH eutt (TauF t1) (TauF t2)
+    euttF eutt (TauF t1) (TauF t2)
 | euttF_vis u (e : E u) k1 k2
-      (EUTTK: forall x, euttH (k1 x) (k2 x) \/ eutt (k1 x) (k2 x)):
-    euttF euttH eutt (VisF e k1) (VisF e k2)
+      (EUTTK: forall x, eutt (k1 x) (k2 x)):
+    euttF eutt (VisF e k1) (VisF e k2)
 | euttF_tau_left t1 ot2
-      (EQTAUS: euttF euttH eutt (observe t1) ot2):
-    euttF euttH eutt (TauF t1) ot2
+      (EQTAUS: euttF eutt (observe t1) ot2):
+    euttF eutt (TauF t1) ot2
 | euttF_tau_right ot1 t2
-      (EQTAUS: euttF euttH eutt ot1 (observe t2)):
-    euttF euttH eutt ot1 (TauF t2)
+      (EQTAUS: euttF eutt ot1 (observe t2)):
+    euttF eutt ot1 (TauF t2)
 .
 Hint Constructors euttF.
 
-Definition eutt_ eutt t1 t2 := euttF bot2 eutt (observe t1) (observe t2).
+Definition eutt_ eutt t1 t2 := euttF eutt (observe t1) (observe t2).
 Hint Unfold eutt_.
 
 (* We now take the greatest fixpoint of [eutt_]. *)
@@ -72,14 +72,12 @@ Hint Unfold eutt_.
 Definition eutt t1 t2 := gcpn2 eutt_ bot2 bot2 t1 t2.
 Hint Unfold eutt.
 
-Lemma euttF_mon r r' s s' x y
-    (EUTT: euttF r s x y)
-    (LEr: r <2= r')
-    (LEs: s <2= s'):
-  euttF r' s' x y.
+Lemma euttF_mon r r' x y
+    (EUTT: euttF r x y)
+    (LEr: r <2= r'):
+  euttF r' x y.
 Proof.
   induction EUTT; eauto.
-  econstructor; intros. edestruct EUTTK; eauto.
 Qed.
 
 Lemma monotone_eutt_ : monotone2 eutt_.

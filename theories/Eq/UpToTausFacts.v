@@ -18,8 +18,7 @@ From ITree Require Import
 From ITree Require Export
      Eq.Eq
      Eq.UpToTaus
-     Eq.UpToTausCore
-     Eq.Untaus.
+     Eq.UpToTausCore.
 
 Import ITreeNotations.
 Local Open Scope itree.
@@ -57,53 +56,33 @@ End EUTT_Lemmas1.
 Section EUTT_upto.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
-  
-Inductive clo_eutt_tausL (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
-| clo_eutt_taus_left t1 t1' t2
-      (UNT: untaus t1 t1')
-      (REL: r t1' t2) :
-    clo_eutt_tausL r t1 t2
+
+Inductive eutt_bind_clo (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
+| clo_eutt_bind_ U1 U2 RU t1 t2 k1 k2
+      (EQV: @eutt E U1 U2 RU t1 t2)
+      (REL: forall v1 v2 (RELv: RU v1 v2), r (k1 v1) (k2 v2))
+  : eutt_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
 .
-Hint Constructors clo_eutt_tausL.
+Hint Constructors eutt_bind_clo.
 
-Lemma eutt_clo_tausL:
-  clo_eutt_tausL <3= cpn2 (eutt_ RR).
+Lemma eutt_clo_bind:
+  eutt_bind_clo <3= cpn2 (eutt_ RR).
 Proof.
-  ucompat. econstructor; [pmonauto|].
-  intros. destruct PR.
-  red. red in REL. hinduction UNT before RR; intros.
-  + eapply euttF_mon; eauto with rclo.
-  + subst. eauto.
-Qed.
+Admitted.
 
-Inductive clo_eutt_tausR (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
-| clo_eutt_taus_right t1 t2 t2'
-      (UNT: untaus t2 t2')
-      (REL: r t1 t2') :
-  clo_eutt_tausR r t1 t2
-.
-Hint Constructors clo_eutt_tausR.
-
-Lemma eutt_clo_tausR:
-  clo_eutt_tausR <3= cpn2 (eutt_ RR).
+Lemma eutt_clo_eq_trans:
+  eq_trans_clo <3= cpn2 (@eutt_ E _ _ RR).
 Proof.
-  ucompat. econstructor; [pmonauto|].
-  intros. destruct PR.
-  red. red in REL. hinduction UNT before RR; intros.
-  + eapply euttF_mon; eauto with rclo.
-  + subst. eauto.
-Qed.
+Admitted.
 
 End EUTT_upto.
 
-Arguments eutt_clo_tausL : clear implicits.
-Arguments eutt_clo_tausR : clear implicits.
+Arguments eutt_clo_bind : clear implicits.
+Arguments eutt_clo_eq_trans : clear implicits.
 
-Section EUTT_transitivity.
+Section EUTT_transitivitry.
 
-Context {E : Type -> Type}.
-
-Lemma eutt_trans {R1 R2 R3} RR1 RR2 RR t1 t2 t3
+Lemma eutt_trans {E R1 R2 R3} RR1 RR2 RR t1 t2 t3
       (INL: @eutt E R1 R2 RR1 t1 t2)
       (INR: @eutt E R2 R3 RR2 t2 t3)
       (RREQ: forall r1 r2 r3, RR1 r1 r2 -> RR2 r2 r3 -> RR r1 r3: Prop) :
@@ -115,23 +94,22 @@ Proof.
   induction INL; intros; clear t1 t2.
   - remember (RetF r2) as ot. revert Heqot.
     induction INR; intros; inv Heqot; eauto with paco.
-  - destruct (notau_dec ot3) as [EQ | EQ].
-    + destruct ot3; simpl in EQ; try contradiction.
+  - assert (DEC: match ot3 with TauF _ => True | _ => False end \/ match ot3 with TauF _ => False | _ => True end) by (destruct ot3; auto).
+    destruct DEC as [DEC | DEC].
+    + destruct ot3; simpl in DEC; try contradiction.
       econstructor. gbase. eapply CIH; eauto with paco.
       eapply gcpn2_step with (gf := eutt_ RR2) (x0 := Tau t3) (x1 := Tau t) in INR; eauto with paco.
       eapply eutt_elim_tauL, eutt_elim_tauR.
       eauto.
-    + inv INR; simpobs; simpl in EQ; try contradiction. econstructor.
+    + inv INR; simpobs; simpl in DEC; try contradiction. econstructor.
       gunfold EQTAUS. red in EQTAUS.
       move EQTAUS0 before CIH. revert_until EQTAUS0.
-      induction EQTAUS0; intros; simpl in EQ; try contradiction.
+      induction EQTAUS0; intros; simpl in DEC; try contradiction.
       * remember (RetF r1) as ot. revert Heqot.
         induction EQTAUS; intros; inv Heqot; eauto with paco.
       * remember (VisF e k1) as ot. revert Heqot.
         induction EQTAUS; intros; dependent destruction Heqot; eauto with paco.
-        econstructor. intros. right.
-        destruct (EUTTK x); try contradiction.
-        destruct (EUTTK0 x); try contradiction.
+        econstructor. intros.
         gbase. eauto.
       * eapply IHEQTAUS0; eauto.
         eapply gcpn2_step with (gf := eutt_ RR1) (x1 := Tau t1) in EQTAUS; eauto with paco.
@@ -141,7 +119,7 @@ Proof.
     move INR before CIH. revert_until INR.
     induction INR; intros; subst; try dependent destruction Heqot; eauto 7.
     econstructor. intros.
-    edestruct EUTTK, EUTTK0; eauto 8 with rclo paco.
+    eauto 8 with rclo paco.
   - eauto.
   - remember (TauF t0) as ot.
     move INR before CIH. revert_until INR.
@@ -149,25 +127,25 @@ Proof.
     + eapply IHINL. gunfold EQTAUS. eauto.
 Qed.
 
-Global Instance eutt_cong_gcpn_ {R1 R2 RR}:
+Global Instance eutt_cong_gcpn_ {E R1 R2 RR}:
   Proper (eutt eq ==> eutt eq ==> flip impl)
          (gcpn2 (@eutt_ E R1 R2 RR) bot2 bot2).
 Proof.
-  repeat intro. eapply eutt_trans; eauto; cycle 1.
+  repeat intro. 
+
+  eapply eutt_trans; eauto; cycle 1.
   { intros; subst; eauto. }
   symmetry in H0.
   eapply eutt_trans; eauto.
   intros; subst; eauto.
 Qed.
 
-Global Instance eutt_cong_gcpn {R1 R2 RR}:
+Global Instance eutt_cong_gcpn {E R1 R2 RR}:
   Proper (eutt eq ==> eutt eq ==> iff)
          (gcpn2 (@eutt_ E R1 R2 RR) bot2 bot2).
 Proof.
   split; eapply eutt_cong_gcpn_; auto using symmetry.
 Qed.
-
-End EUTT_transitivity.
 
 Global Instance Equivalence_eutt {E R} : @Equivalence (itree E R) (eutt eq).
 Proof.
@@ -179,70 +157,73 @@ Proof.
     intros; subst; eauto.
 Qed.
 
-Section EUTT_Lemmas2.
+End EUTT_transitivitry.
+
+Section EUTT_trans_clo.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
+  
+Definition euttL (r rg: itree E R1 -> itree E R2 -> Prop) t1 t2 :=
+  gcpn2 (@eutt_ E _ _ RR) r rg t1 t2.
+Hint Unfold euttL.
 
-Lemma eutt_unalltaus t1 t1' t2
-      (NOT: unalltaus t1 t1')
-      (EQ : @eutt E R1 R2 RR t1 t2):
-  exists t2', unalltaus t2 t2'.
-Proof.
-  gunfold EQ. red in EQ. unfold unalltaus in *.
-  destruct NOT as [UNT NOT].
-  hinduction UNT before RR; intros.
-  - hinduction EQ before RR; intros; subst; try inv NOT.
-    + exists (Ret r2). split; simpl; eauto.
-    + exists (Vis e k2). split; simpl; eauto.
-    + edestruct IHEQ; eauto.
-      exists x. split; eauto.
-  - edestruct IHUNT; eauto.
-    subst. eapply gcpn2_unfold with (gf := eutt_ RR); eauto with paco.
-    eapply eutt_elim_tauL. gstep. apply EQ.
-Qed.      
+Definition euttH (r rg: itree E R1 -> itree E R2 -> Prop) t1 t2 :=
+  forall t1' t2' (EQ1: t1 ≈ t1') (EQ2: t2 ≈ t2'), gcpn2 (@eutt_ E _ _ RR) r rg t1' t2'.
+Hint Unfold euttH.
 
-Lemma eutt_unalltaus_ret {R} v t1 t2
-      (EQ: @eutt E R R eq t1 t2)
-      (UNAT: unalltaus t1 (Ret v)):
-  unalltaus t2 (Ret v).
+Lemma euttH_impl_euttL r rg t1 t2
+      (EQH: euttH r rg t1 t2):
+  euttL r rg t1 t2.
+Proof. intros. eapply EQH; reflexivity. Qed.
+
+Lemma euttH_trans r rg t1 t2 t1' t2'
+      (EQ1: t1 ≈ t1')
+      (EQ2: t2 ≈ t2')
+      (EQH: euttH r rg t1' t2'):
+  euttH r rg t1 t2.
 Proof.
-  gunfold EQ. red in EQ.
-  (* TODO: generalize [genobs]. *)
-  destruct UNAT. genobs t1 ot1. remember (observe (Ret v)) as orv. symmetry in Heqorv.
-  hinduction H before R; intros; subst.
-  - red. hinduction EQ before R; intros; subst; inv H0; try inv Heqorv; eauto.
-    edestruct IHEQ; simpl; eauto.
-  - eapply IHuntausF; eauto.
-    eapply gcpn2_unfold with (gf:= eutt_ eq); eauto with paco.
-    eapply eutt_elim_tauL. gstep. eauto.
+  repeat intro. eapply EQH.
+  - rewrite <-EQ1; eauto.
+  - rewrite <-EQ2; eauto.
 Qed.
 
-Lemma eutt_unalltaus_vis {R U} t1 t2 e (k1: U -> _)
-      (EQ: @eutt E R R eq t1 t2)
-      (UNAT: unalltaus t1 (Vis e k1)):
-  exists k2, unalltaus t2 (Vis e k2) /\ forall u, k1 u ≈ k2 u.
+
+Inductive eutt_trans_clo (r : itree E R1 -> itree E R2 -> Prop) :
+  itree E R1 -> itree E R2 -> Prop :=
+| eutt_trans_clo_intro t1 t2 t3 t4
+      (EQVl: t1 ≈ t2)
+      (EQVr: t4 ≈ t3)
+      (RELATED: r t2 t3)
+  : eutt_trans_clo r t1 t4
+.
+Hint Constructors eutt_trans_clo.
+
+Lemma euttH_vis r rg (LEr: r <2= rg) u (e: E u) k1 k2
+      (EQH: forall x, euttL (eutt_trans_clo rg) (eutt_trans_clo rg) (k1 x) (k2 x)):
+  euttH r rg (Vis e k1) (Vis e k2).
 Proof.
-  gunfold EQ. red in EQ.
-  destruct UNAT. genobs t1 ot1. remember (observe (Vis e k1)) as ok. symmetry in Heqok.
-  hinduction H before R; intros; subst.
-  - hinduction EQ before R; intros; subst; inv H0; try dependent destruction Heqok; eauto.
-    + eexists. split; simpl; eauto.
-      intros; edestruct EUTTK; eauto; contradiction.
-    + edestruct IHEQ as [? []]; simpl; eauto.
-      eexists. split; [split; simpl; eauto|]; eauto.
-  - eapply IHuntausF; eauto.
-    eapply gcpn2_unfold with (gf:= eutt_ eq); eauto with paco.
-    eapply eutt_elim_tauL. gstep. eauto.
+  revert_until LEr. gcofix CIH. intros. unfold euttL in *.
+  gstep. red.
+  gunfold EQ1. red in EQ1. simpl in *. remember (VisF e k1) as ov1.
+  hinduction EQ1 before CIH; intros; eauto; dependent destruction Heqov1.
+  gunfold EQ2. red in EQ2. simpl in *. remember (VisF e0 k3) as ov2.
+  hinduction EQ2 before CIH; intros; eauto; dependent destruction Heqov2.
+  econstructor. intros.
+
+  k3 = k0 =clo rg= k4 = k2
+  
+
+  
+
+  
 Qed.
 
-Lemma untaus_eutt {R} {t1 t2: itree E R}
-      (UN: untaus t1 t2):
-  t1 ≈ t2.
-Proof.
-  genobs t1 ot1. genobs t2 ot2.
-  hinduction UN before R; intros; subst; eauto.
-  - apply observing_intros in Heqot2. rewrite Heqot2. reflexivity.
-  - rewrite (simpobs Heqot1), tau_eutt. eauto.
-Qed.
+End EUTT_trans_clo.  
 
-End EUTT_Lemmas2.
+
+
+
+
+
+
+

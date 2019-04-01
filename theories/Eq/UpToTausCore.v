@@ -52,15 +52,13 @@ Context {E : Type -> Type}.
 
 Lemma Symmetric_euttF_hetero {R1 R2}
       (RR1 : R1 -> R2 -> Prop) (RR2 : R2 -> R1 -> Prop)
-      (r1 : _ -> _ -> Prop) (r2 : _ -> _ -> Prop) (r'1 : _ -> _ -> Prop) (r'2 : _ -> _ -> Prop)
+      (r1 : _ -> _ -> Prop) (r2 : _ -> _ -> Prop)
       (SYM_RR : forall r1 r2, RR1 r1 r2 -> RR2 r2 r1)
-      (SYM_r : forall i j, r1 i j -> r2 j i)
-      (SYM_r' : forall i j, r'1 i j -> r'2 j i) :
+      (SYM_r : forall i j, r1 i j -> r2 j i):
   forall (ot1 : itree' E R1) (ot2 : itree' E R2),
-    euttF RR1 r1 r'1 ot1 ot2 -> euttF RR2 r2 r'2 ot2 ot1.
+    euttF RR1 r1 ot1 ot2 -> euttF RR2 r2 ot2 ot1.
 Proof.
   intros. induction H; eauto 7.
-  econstructor; intros. edestruct EUTTK; eauto 7.
 Qed.
 
 Lemma Symmetric_eutt_hetero {R1 R2}
@@ -73,9 +71,6 @@ Proof.
   gunfold H0.
   repeat red in H0 |- *.
   induction H0; eauto 7 with paco.
-  econstructor; intros.
-  edestruct EUTTK as [TMP | TMP]; [eauto 7 with paco|].
-  right. gbase. apply CIH. eauto.
 Qed.
 
 Lemma eutt_Ret {R1 R2} (RR: R1 -> R2 -> Prop) x y :
@@ -89,12 +84,8 @@ Lemma eutt_Vis {R1 R2 U} RR (e: E U) k k' :
   eutt RR (Vis e k) (Vis e k').
 Proof.
   intros. gstep. econstructor.
-  intros. right. apply H.
+  intros. apply H.
 Qed.
-
-Definition rcomp {R1 R2 R3} (RR1: R1 -> R2 -> Prop) (RR2: R2 -> R3 -> Prop) :=
-  fun r1 r3 => exists r2, RR1 r1 r2 /\ RR2 r2 r3.
-Hint Unfold rcomp.
 
 End EUTT_hetero.
 
@@ -157,8 +148,8 @@ Proof.
   - intros. gstep; econstructor.
     intros x; specialize (H x). eauto.
   - intros H x.
-    gunfold H; inversion H; auto_inj_pair2; subst.
-    edestruct EUTTK; eauto with paco.
+    gunfold H. red in H. dependent destruction H.
+    eauto with paco.
 Qed.
 
 Lemma eutt_ret {E R1 R2} (RR : R1 -> R2 -> Prop) r1 r2 :
@@ -188,5 +179,5 @@ Proof.
   gstep. econstructor.
   destruct (observe t); eauto with paco.
   - constructor. apply reflexivity.
-  - constructor. intros. right. apply reflexivity.
+  - constructor. intros. apply reflexivity.
 Qed.

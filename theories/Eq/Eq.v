@@ -184,17 +184,17 @@ Qed.
 
 (** *** "Up-to" principles for coinduction. *)
 
-Inductive eq_itree_trans_clo (r : itree E R1 -> itree E R2 -> Prop) :
+Inductive eq_trans_clo (r : itree E R1 -> itree E R2 -> Prop) :
   itree E R1 -> itree E R2 -> Prop :=
-| eq_itree_trans_clo_intro t1 t2 t3 t4
-      (EQVl: eq_itree eq t1 t2)
-      (EQVr: eq_itree eq t4 t3)
+| eq_trans_clo_intro t1 t2 t3 t4
+      (EQVl: t1 ≅ t2)
+      (EQVr: t4 ≅ t3)
       (RELATED: r t2 t3)
-  : eq_itree_trans_clo r t1 t4
+  : eq_trans_clo r t1 t4
 .
-Hint Constructors eq_itree_trans_clo.
+Hint Constructors eq_trans_clo.
 
-Lemma eq_itree_clo_trans : eq_itree_trans_clo <3= cpn2 (eq_itree_ RR).
+Lemma eq_itree_clo_trans : eq_trans_clo <3= cpn2 (eq_itree_ RR).
 Proof.
   ucompat. econstructor; [pmonauto|].
   intros. dependent destruction PR.
@@ -211,16 +211,16 @@ Proof.
     eauto with rclo.
 Qed.
 
-Inductive eq_itree_bind_clo (r : itree E R1 -> itree E R2 -> Prop) :
+Inductive eq_bind_clo (r : itree E R1 -> itree E R2 -> Prop) :
   itree E R1 -> itree E R2 -> Prop :=
 | pbc_intro_h U1 U2 (RU : U1 -> U2 -> Prop) t1 t2 k1 k2
       (EQV: eq_itree RU t1 t2)
       (REL: forall u1 u2, RU u1 u2 -> r (k1 u1) (k2 u2))
-  : eq_itree_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
+  : eq_bind_clo r (ITree.bind t1 k1) (ITree.bind t2 k2)
 .
-Hint Constructors eq_itree_bind_clo.
+Hint Constructors eq_bind_clo.
 
-Lemma eq_itree_clo_bind : eq_itree_bind_clo <3= cpn2 (eq_itree_ RR).
+Lemma eq_itree_clo_bind : eq_bind_clo <3= cpn2 (eq_itree_ RR).
 Proof.
   ucompat. econstructor; [pmonauto|].
   intros. dependent destruction PR.
@@ -237,8 +237,8 @@ End eq_itree_h.
 Arguments eq_itree_clo_trans : clear implicits.
 Arguments eq_itree_clo_bind : clear implicits.
 
-Hint Constructors eq_itree_trans_clo.
-Hint Constructors eq_itree_bind_clo.
+Hint Constructors eq_trans_clo.
+Hint Constructors eq_bind_clo.
 
 (** *** One-sided inversion *)
 
