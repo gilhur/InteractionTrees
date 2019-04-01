@@ -41,6 +41,19 @@ Section EUTT.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
+Inductive taus_up (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
+| taus_up_base t1 t2
+               (BASE: r t1 t2):
+    taus_up r t1 t2
+| taus_up_left t1 t2
+               (REL: taus_up r (Tau t1) t2):
+    taus_up r t1 t2
+| taus_up_right t1 t2
+               (REL: taus_up r t1 (Tau t2)):
+    taus_up r t1 t2
+.
+Hint Constructors taus_up.
+
 Inductive euttF (eutt: itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
 | euttF_ret r1 r2
       (RBASE: RR r1 r2):
@@ -49,7 +62,7 @@ Inductive euttF (eutt: itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree'
       (EQTAUS: eutt t1 t2):
     euttF eutt (TauF t1) (TauF t2)
 | euttF_vis u (e : E u) k1 k2
-      (EUTTK: forall x, eutt (k1 x) (k2 x)):
+      (EUTTK: forall x, taus_up eutt (k1 x) (k2 x) : Prop):
     euttF eutt (VisF e k1) (VisF e k2)
 | euttF_tau_left t1 ot2
       (EQTAUS: euttF eutt (observe t1) ot2):
@@ -72,13 +85,25 @@ Hint Unfold eutt_.
 Definition eutt t1 t2 := gcpn2 eutt_ bot2 bot2 t1 t2.
 Hint Unfold eutt.
 
-Lemma euttF_mon r r' x y
-    (EUTT: euttF r x y)
-    (LEr: r <2= r'):
-  euttF r' x y.
+Lemma taus_up_mon r r' x y
+      (EUTT: taus_up r x y)
+      (LEr: r <2= r'):
+  taus_up r' x y.
 Proof.
   induction EUTT; eauto.
 Qed.
+
+Hint Resolve taus_up_mon : paco.
+
+Lemma euttF_mon r r' x y
+      (EUTT: euttF r x y)
+      (LEr: r <2= r'):
+  euttF r' x y.
+Proof.
+  induction EUTT; eauto with paco.
+Qed.
+
+Hint Resolve euttF_mon : paco.
 
 Lemma monotone_eutt_ : monotone2 eutt_.
 Proof. red; intros. eapply euttF_mon; eauto. Qed.
@@ -93,9 +118,12 @@ Global Arguments eutt t1%itree t2%itree.
 
 End EUTT.
 
+Hint Constructors taus_up.
 Hint Constructors euttF.
 Hint Unfold eutt_.
 Hint Unfold eutt.
+Hint Resolve taus_up_mon : paco.
+Hint Resolve euttF_mon : paco.
 Hint Resolve monotone_eutt_ : paco.
 Hint Resolve eutt_fold.
 

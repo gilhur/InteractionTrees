@@ -58,7 +58,9 @@ Lemma Symmetric_euttF_hetero {R1 R2}
   forall (ot1 : itree' E R1) (ot2 : itree' E R2),
     euttF RR1 r1 ot1 ot2 -> euttF RR2 r2 ot2 ot1.
 Proof.
-  intros. induction H; eauto 7.
+  intros. induction H; eauto.
+  econstructor. intros.
+  induction (EUTTK x); eauto.
 Qed.
 
 Lemma Symmetric_eutt_hetero {R1 R2}
@@ -70,7 +72,9 @@ Proof.
   gcofix CIH; gstep. intros.
   gunfold H0.
   repeat red in H0 |- *.
-  induction H0; eauto 7 with paco.
+  induction H0; eauto with paco.
+  econstructor; intros.
+  induction (EUTTK x); eauto with paco.
 Qed.
 
 Lemma eutt_Ret {R1 R2} (RR: R1 -> R2 -> Prop) x y :
@@ -83,8 +87,7 @@ Lemma eutt_Vis {R1 R2 U} RR (e: E U) k k' :
   (forall x: U, @eutt E R1 R2 RR (k x) (k' x)) ->
   eutt RR (Vis e k) (Vis e k').
 Proof.
-  intros. gstep. econstructor.
-  intros. apply H.
+  intros. gstep. econstructor. eauto.
 Qed.
 
 End EUTT_hetero.
@@ -141,7 +144,7 @@ Qed.
 
 Lemma eutt_vis {E R1 R2} (RR : R1 -> R2 -> Prop)
       {U} (e : E U) (k1 : U -> itree E R1) (k2 : U -> itree E R2) :
-  (forall u, eutt RR (k1 u) (k2 u)) <->
+  (forall u, taus_up (eutt RR) (k1 u) (k2 u)) <->
   eutt RR (Vis e k1) (Vis e k2).
 Proof.
   split.
@@ -179,5 +182,5 @@ Proof.
   gstep. econstructor.
   destruct (observe t); eauto with paco.
   - constructor. apply reflexivity.
-  - constructor. intros. apply reflexivity.
+  - constructor. intros. econstructor. apply reflexivity.
 Qed.
