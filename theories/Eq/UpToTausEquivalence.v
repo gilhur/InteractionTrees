@@ -65,8 +65,6 @@ Proof.
   intros. destruct x0, p; contradiction.
 Qed.
 
-Hint Resolve rfst_mon rsnd_mon : paco.
-
 End EUTT_REL.
 
 Hint Unfold rpair rfst rsnd.
@@ -76,11 +74,43 @@ Section EUTTG.
 
 Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
 
+Inductive taus_up_clo (r : itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
+| eutt_taus_up_base t1 t2
+    (IN: eq_trans_clo r t1 t2)
+  : taus_up_clo r t1 t2
+| eutt_taus_up_left t1 t2 t'
+    (IN: taus_up_clo r t' t2)
+    (TAU: TauF t' = observe t1)
+  : taus_up_clo r t1 t2
+| eutt_taus_up_right t1 t2 t'
+    (IN: taus_up_clo r t1 t')
+    (TAU: TauF t' = observe t2)
+  : taus_up_clo r t1 t2
+.
+Hint Constructors taus_up_clo.
+
+Inductive eutt_trans_clo (r : itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree E R2 -> Prop :=
+| eutt_trans_clo_intro t1 t2 t3 t4
+      (EQVl: t1 ≈ t2)
+      (EQVr: t4 ≈ t3)
+      (REL: r t2 t3)
+  : eutt_trans_clo r t1 t4
+.
+Hint Constructors eutt_trans_clo.
+
+Inductive euttG_bnd (r : eutt_rel) : eutt_rel :=
+| eutt_bound_left t1 t2
+    (IN: eutt_trans_clo (rfst r) t1 t2)
+    : euttG_bnd r (inl (t1, t2))
+| eutt_bound_right t1 t2
+    (IN: taus_up_clo (rsnd r) t1 t2)
+    : euttG_bnd r (inr (t1, t2))
+.
+Hint Constructors euttG_bnd.
+
 Inductive euttHF (euttH euttL: itree E R1 -> itree E R2 -> Prop) : itree' E R1 -> itree' E R2 -> Prop :=
-| euttHF_lower ot1 ot2 t1' t2'
-      (EQ1: go ot1 ≈ t1')
-      (EQ2: go ot2 ≈ t2')
-      (RBASE: euttL t1' t2') :
+| euttHF_lower ot1 ot2
+      (RBASE: eutt_trans_clo euttL (go ot1) (go ot2)) :
     euttHF euttH euttL ot1 ot2
 .
 Hint Constructors euttHF.
@@ -90,17 +120,18 @@ Definition euttG_ (eutt: eutt_rel) : eutt_rel :=
         (fun t1 t2 => euttF RR (rfst eutt) (rsnd eutt) (observe t1) (observe t2)).
 Hint Unfold euttG_.
 
-Definition euttG hr hrg : eutt_rel := gcpn1 euttG_ hr hrg.
+Definition euttG hr hrg : eutt_rel := gcpn1 euttG_ euttG_bnd hr hrg.
 Definition euttH h hg r rg t1 t2 := euttG (rpair h r) (rpair hg rg) (inl (t1, t2)).
 Definition euttL h hg r rg t1 t2 := euttG (rpair h r) (rpair hg rg) (inr (t1, t2)).
 
+ 
 Lemma euttHF_mon h h' r r' x y
     (EUTT: euttHF h r x y)
     (LEh: h <2= h')
     (LEr: r <2= r'):
   euttHF h' r' x y.
 Proof.
-  destruct EUTT; eauto.
+  inv EUTT. inv RBASE. do 2 econstructor; eauto.
 Qed.
 
 Lemma monotone_euttG_ : monotone1 euttG_.
@@ -120,14 +151,85 @@ Lemma euttLF_eq_euttG_ r t1 t2:
   euttF RR (rfst r) (rsnd r) (observe t1) (observe t2) <-> euttG_ r (inr (t1,t2)).
 Proof. reflexivity. Qed.
 
+Lemma euttG_bnd_compat: compatible_bound1 euttG_ euttG_bnd.
+Proof.
+  econstructor; intros.
+  - destruct PR.
+    + destruct IN. econstructor; eauto.
+    + induction IN.
+      * destruct IN. econstructor; eauto.
+      * destruct IHIN.
+        econstructor; eauto. econstructor.
+        eapply eutt_taus_up_left, TAU.
+        specialize (PTW _ H). inv PTW. eauto.
+      * destruct IHIN.
+        econstructor; eauto. econstructor.
+        eapply eutt_taus_up_right, TAU.
+        specialize (PTW _ H). inv PTW. eauto.
+  - destruct PR.
+    + destruct IN. inv REL. inv RBASE.
+      econstructor. econstructor; cycle -1.
+      * do 3 econstructor; cycle -1; eauto; reflexivity.
+      * rewrite EQVl, <-EQVl0. reflexivity.
+      * rewrite EQVr, <-EQVr0. reflexivity.
+    + induction IN.
+      * destruct IN. repeat red in REL. repeat red.
+        gunfold EQVl. gunfold EQVr. red in EQVl, EQVr.
+        hinduction RELATED before RR; intros; try (inv EQVl; inv EQVr; econstructor; eauto; fail). 
+        -- dependent destruction EQVl. dependent destruction EQVr. simpobs. econstructor; eauto.
+           intros. destruct (EUTTK x1).
+           ++ left. do 2 econstructor; eauto.
+              ** rewrite REL. reflexivity.
+              ** rewrite REL0. reflexivity.
+          ++ right. do 3 econstructor; eauto.
+        -- inv EQVl. econstructor. eapply IHRELATED; eauto.
+           gunfold REL. apply REL.
+        -- inv EQVr. econstructor. eapply IHRELATED; eauto.
+           gunfold REL. apply REL.
+      * repeat red. simpobs.
+        econstructor. apply IHIN.
+      * repeat red. simpobs.
+        econstructor. apply IHIN.
+  - inv PR.
+    + left. destruct IN. inv REL. destruct IN.
+      do 2 econstructor; cycle -1; eauto.
+      * rewrite EQVl, EQVl0. reflexivity.
+      * rewrite EQVr, EQVr0. reflexivity.
+    + induction IN.
+      * destruct IN. inv RELATED.
+        hinduction IN before r; intros.
+        -- destruct IN. left. do 3 econstructor; cycle -1; eauto.
+           ++ rewrite EQVl, EQVl0. reflexivity.
+           ++ rewrite EQVr, EQVr0. reflexivity.
+        -- gunfold EQVl. repeat red in EQVl. simpobs. inv EQVl.
+           specialize (IHIN _ _ REL EQVr). destruct IHIN.
+           ++ left. econstructor. econstructor 2; eauto. inv H. eauto.
+           ++ right. repeat red. simpobs. econstructor. eauto.
+        -- gunfold EQVr. repeat red in EQVr. simpobs. inv EQVr.
+           specialize (IHIN _ _ EQVl REL). destruct IHIN.
+           ++ left. econstructor. econstructor 3; eauto. inv H. eauto.
+           ++ right. repeat red. simpobs. econstructor. eauto.
+      * destruct IHIN.
+        -- inv H. left. econstructor. econstructor 2; eauto.
+        -- right. repeat red. simpobs. econstructor. eauto.
+      * destruct IHIN.
+        -- inv H. left. econstructor. econstructor 3; eauto.
+        -- right. repeat red. simpobs. econstructor. eauto.
+Qed.
+Hint Resolve euttG_bnd_compat : paco.
+
 Global Arguments euttH h hg r rg t1%itree t2%itree.
 Global Arguments euttL h hg r rg t1%itree t2%itree.
 
 End EUTTG.
 
+Hint Constructors taus_up_clo.
+Hint Constructors eutt_trans_clo.
+Hint Constructors euttG_bnd.
 Hint Constructors euttHF.
 Hint Unfold euttG_.
 Hint Resolve monotone_euttG_ : paco.
+Hint Resolve euttG_bnd_compat : paco.
 
 Section EUTT_inftaus.
 
@@ -146,7 +248,7 @@ Proof.
 Qed.
 Hint Resolve mono_inftaus_ : paco.
 
-Definition inftaus {R} t := gcpn1 (@inftaus_ R) bot1 bot1 t.
+Definition inftaus {R} t := gcpn1 (@inftaus_ R) bot2 bot1 bot1 t.
 
 (* TODO: think about avoiding classical axiom. *)
 Lemma inftaus_or_fintaus {R} (t: itree E R) :
@@ -239,8 +341,8 @@ Lemma euttG_sym p (REL: euttG RR bot1 bot1 p):
 Proof.
   revert p REL. gcofix CIH. intros.
   gstep. gunfold REL. destruct p, p; repeat red.
-  - inv REL.
-    econstructor; eauto. gbase. apply (CIH (inr (_,_))).
+  - inv REL. inv RBASE.
+    do 2 econstructor; eauto. gbase. apply (CIH (inr (_,_))).
     eauto using rfst_mon, rsnd_mon, gcpn1_mon_bot with paco.
   - repeat red in REL.
     hinduction REL before CIH; eauto.
@@ -336,21 +438,21 @@ Proof.
 Qed.
 
 Lemma euttHF_elim_tauL t1 ot2 clo r
-      (IN: euttHF (rfst (rclo1 (euttG_ RR) clo r)) (rsnd (rclo1 (euttG_ RR) clo r)) (observe t1) ot2):
-  @euttHF E R1 R2 (rfst (rclo1 (euttG_ RR) clo r)) (rsnd (rclo1 (euttG_ RR) clo r)) (TauF t1) ot2.
+      (IN: euttHF (rfst (rclo1 (euttG_ RR) euttG_bnd clo r)) (rsnd (rclo1 (euttG_ RR) euttG_bnd clo r)) (observe t1) ot2):
+  @euttHF E R1 R2 (rfst (rclo1 (euttG_ RR) euttG_bnd clo r)) (rsnd (rclo1 (euttG_ RR) euttG_bnd clo r)) (TauF t1) ot2.
 Proof.
-  inv IN.
-  econstructor; eauto.
-  rewrite <-EQ1, <-itree_eta, tau_eutt. reflexivity.
+  inv IN. inv RBASE.
+  do 2 econstructor; eauto.
+  rewrite <-EQVl, <-itree_eta, tau_eutt. reflexivity.
 Qed.
 
 Lemma euttHF_elim_tauR t2 ot1 clo r
-      (IN: euttHF (rfst (rclo1 (euttG_ RR) clo r)) (rsnd (rclo1 (euttG_ RR) clo r)) ot1 (observe t2)):
-  @euttHF E R1 R2 (rfst (rclo1 (euttG_ RR) clo r)) (rsnd (rclo1 (euttG_ RR) clo r)) ot1 (TauF t2).
+      (IN: euttHF (rfst (rclo1 (euttG_ RR) euttG_bnd clo r)) (rsnd (rclo1 (euttG_ RR) euttG_bnd clo r)) ot1 (observe t2)):
+  @euttHF E R1 R2 (rfst (rclo1 (euttG_ RR) euttG_bnd clo r)) (rsnd (rclo1 (euttG_ RR) euttG_bnd clo r)) ot1 (TauF t2).
 Proof.
-  inv IN.
-  econstructor; eauto.
-  rewrite <-EQ2, <-itree_eta, tau_eutt. reflexivity.
+  inv IN. inv RBASE.
+  do 2 econstructor; eauto.
+  rewrite <-EQVr, <-itree_eta, tau_eutt. reflexivity.
 Qed.
 
 End EUTTG_Lemmas.
@@ -366,59 +468,73 @@ Context {E : Type -> Type} {R1 R2 : Type} (RR : R1 -> R2 -> Prop).
  *)
 
 Inductive clo_euttG_trans (r: eutt_rel) : @eutt_rel E R1 R2 :=
-| clo_euttG_trans_high t1 t2 t3 t4
-      (EQVL: t1 ≈ t2)
-      (EQVR: t4 ≈ t3)
-      (REL: r (inl (t2, t3))) :
-  clo_euttG_trans r (inl (t1,t4))
-| clo_euttG_trans_low t1 t2 t3 t4
-      (EQVL: t1 ≅ t2)
-      (EQVR: t4 ≅ t3)
-      (REL: r (inr (t2, t3))) :
-  clo_euttG_trans r (inr (t1,t4))
+| clo_euttG_trans_high t1 t2
+      (REL: eutt_trans_clo (rfst r) t1 t2) :
+  clo_euttG_trans r (inl (t1,t2))
+| clo_euttG_trans_low t1 t2
+      (REL: eq_trans_clo (rsnd r) t1 t2):
+  clo_euttG_trans r (inr (t1,t2))
 .
 Hint Constructors clo_euttG_trans.
 
 Lemma euttG_clo_trans:
-  clo_euttG_trans <2= cpn1 (euttG_ RR).
+  clo_euttG_trans <2= cpn1 (euttG_ RR) euttG_bnd.
 Proof.
-  ucompat. constructor; [pmonauto|].
-  intros. destruct PR.
-  { inv REL.
-    econstructor; cycle -1.
-    + apply rclo1_base. apply RBASE.      
-    + rewrite EQVL, EQ1. reflexivity.
-    + rewrite EQVR, EQ2. reflexivity.
+  ucompat. constructor; swap 2 3.
+  { repeat intro. inv IN; inv REL; eauto. }
+  { intros. inv PR.
+    - inv IN. inv REL. inv REL0.
+      do 3 econstructor; cycle -1; eauto.
+      + rewrite EQVl, EQVl0. reflexivity.
+      + rewrite EQVr, EQVr0. reflexivity.
+    - induction IN.
+      + inv IN. inv RELATED. inv REL.
+        left. do 3 econstructor; cycle -1; eauto.
+        * rewrite EQVl, EQVl0. reflexivity.
+        * rewrite EQVr, EQVr0. reflexivity.
+      + destruct IHIN.
+        * inv H. left. econstructor. econstructor 2; eauto.
+        * right. repeat red. simpobs. econstructor. eauto.
+      + destruct IHIN.
+        * inv H. left. econstructor. econstructor 3; eauto.
+        * right. repeat red. simpobs. econstructor. eauto.
   }
-  { gunfold EQVL. gunfold EQVR. red in EQVL, EQVR. repeat red. repeat red in REL.
+    
+  intros. destruct PR.
+  { inv REL. inv REL0. inv RBASE.
+    do 2 econstructor; cycle -1.
+    + apply rclo1_base. apply REL.
+    + rewrite <-EQVl0, EQVl. reflexivity.
+    + rewrite <-EQVr0, EQVr. reflexivity.
+  }
+  { inv REL. gunfold EQVl. gunfold EQVr. red in EQVl, EQVr. repeat red. repeat red in RELATED.
     genobs_clear t1 ot1. genobs_clear t2 ot2. genobs_clear t3 ot3. genobs_clear t4 ot4.
-    move REL before r. revert_until REL.
-    induction REL; intros; subst.
-    - dependent destruction EQVL. dependent destruction EQVR. simpobs.
+    hinduction RELATED before r; intros; subst.
+    - dependent destruction EQVl. dependent destruction EQVr. simpobs.
       eauto.
-    - dependent destruction EQVL. dependent destruction EQVR. simpobs.
+    - dependent destruction EQVl. dependent destruction EQVr. simpobs.
       econstructor. apply rclo1_clo.
-      econstructor; cycle -1.
+      do 2 econstructor; cycle -1.
       + apply rclo1_base. apply EQTAUS.
       + eauto.
       + eauto.
-    - dependent destruction EQVL. dependent destruction EQVR. simpobs.
+    - dependent destruction EQVl. dependent destruction EQVr. simpobs.
       econstructor. intros.
       edestruct EUTTK.
-      + left. apply rclo1_clo. econstructor; cycle -1.
+      + left. apply rclo1_clo. do 2 econstructor; cycle -1.
         * apply rclo1_base. apply H.
         * rewrite (REL x). reflexivity.
         * rewrite (REL0 x). reflexivity.
-      + right. apply rclo1_clo. econstructor; cycle -1.
+      + right. apply rclo1_clo. do 2 econstructor; cycle -1.
         * apply rclo1_base. apply H.
         * eauto.
         * eauto.
-    - dependent destruction EQVL.
-      econstructor. eapply IHREL; eauto.
-      gunfold REL0. eauto.
-    - dependent destruction EQVR.
-      econstructor. eapply IHREL; eauto.
-      gunfold REL0. eauto.
+    - dependent destruction EQVl.
+      econstructor. eapply IHRELATED; eauto.
+      gunfold REL. eauto.
+    - dependent destruction EQVr.
+      econstructor. eapply IHRELATED; eauto.
+      gunfold REL. eauto.
   }
 Qed.
 
@@ -440,9 +556,26 @@ Inductive clo_euttG_bind (r: eutt_rel) : @eutt_rel E R1 R2 :=
 Hint Constructors clo_euttG_bind.
 
 Lemma euttG_clo_bind:
-  clo_euttG_bind <2= cpn1 (euttG_ RR).
+  clo_euttG_bind <2= cpn1 (euttG_ RR) euttG_bnd.
 Proof.
-  ucompat. constructor; [pmonauto|]. 
+  ucompat. constructor; [pmonauto| |]; cycle 1.
+  { intros. destruct PR.
+    - inv IN. inv REL.
+      gunfold EQV. repeat red in EQV.
+      genobs t0 ot0. genobs t5 ot5.
+      hinduction EQV before r; intros; subst.
+      + left. specialize (REL0 _ _ RBASE).
+        do 2 econstructor; cycle -1; eauto.
+        * rewrite EQVl, (simpobs Heqot0), bind_ret_. reflexivity.
+        * rewrite EQVr, (simpobs Heqot5), bind_ret_. reflexivity.
+      +
+
+        do 2 econstructor; cycle -1.
+        * repeat red. apply rclo1_clo. econstructor. apply EQTAUS.
+          intros. apply rclo1_base. apply REL0.
+  }
+
+  
   intros. destruct PR.
   (* 
      euttH 
@@ -550,7 +683,7 @@ Inductive clo_euttG_tausR (r: eutt_rel) : @eutt_rel E R1 R2 :=
 Hint Constructors clo_euttG_tausR.
 
 Lemma euttG_clo_tausL:
-  clo_euttG_tausL <2= cpn1 (euttG_ RR).
+  clo_euttG_tausL <2= cpn1 (euttG_ RR) euttG_bnd.
 Proof.
   intros. destruct PR.
   - uclo euttG_clo_trans. econstructor; cycle -1; eauto with paco.
@@ -571,7 +704,7 @@ Proof.
 Qed.
 
 Lemma euttG_clo_tausR:
-  clo_euttG_tausR <2= cpn1 (euttG_ RR).
+  clo_euttG_tausR <2= cpn1 (euttG_ RR) euttG_bnd.
 Proof.
   intros. destruct PR.
   - uclo euttG_clo_trans. econstructor; cycle -1; eauto with paco.
@@ -633,7 +766,7 @@ Proof.
   assert (EUTTL: forall t1 t2 t1' t2'
                    (EQ1 : t1 ≈ t1') (EQ2 : t2 ≈ t2')
                    (IN : euttL RR bot2 bot2 bot2 bot2 t1 t2),
-             gcpn2 (eutt_ RR) bot2 r t1' t2').
+             gcpn2 (eutt_ RR) bot3 bot2 r t1' t2').
   { intros. apply euttL_bot in IN. gunfold IN. repeat red in IN.
     genobs t1 ot1. genobs t2 ot2.
     hinduction IN before CIH; intros.
@@ -883,8 +1016,8 @@ Inductive clo_trans (h: itree E R1 -> itree E R2 -> Prop) t1 t2 : Prop :=
 Hint Constructors clo_trans.
 
 Axiom foo: forall r,
-    cpn1 (euttG_ RR) r <1=
-    (rpair (clo_trans (rfst r)) (clo_trans (rsnd r)) \1/ fcpn1 (euttG_ RR) r).
+    cpn1 (euttG_ RR) bot2 r <1=
+    (rpair (clo_trans (rfst r)) (clo_trans (rsnd r)) \1/ fcpn1 (euttG_ RR) bot2 r).
 
 Lemma euttH_lower h:
   euttL RR h h h h <2= @euttH E _ _ RR h h bot2 bot2.
@@ -893,7 +1026,7 @@ Proof.
   intros.
   destruct PR.
   econstructor.
-  ustep.
+  ustep. econstructor; try (rewrite <-itree_eta; reflexivity). red.
   
   
   eapply foo in IN.
@@ -1145,33 +1278,20 @@ Ltac tau_steps :=
       end).
 
 
-Global Instance eutt_cong_gcpn_ (r rg: itree E R1 -> itree E R2 -> Prop) :
-  Proper (eutt eq ==> eutt eq ==> impl)
+Global Instance eutt_cong_gcpn (r rg: itree E R1 -> itree E R2 -> Prop) :
+  Proper (eutt eq ==> eutt eq ==> flip impl)
          (gcpn2 (@eutt0 E R1 R2 RR) r rg).
 Proof.
   repeat intro.
-  gclo eutt_clo_trans_left. econstructor. symmetry. eauto.
-  gclo eutt_clo_trans_right. econstructor. symmetry. eauto.
+  gclo eutt_clo_trans_left. econstructor. eauto.
+  gclo eutt_clo_trans_right. econstructor. eauto.
   eauto.
 Qed.
 
-Global Instance eutt_cong_gcpn (r rg: itree E R1 -> itree E R2 -> Prop) :
-  Proper (eutt eq ==> eutt eq ==> iff)
-         (gcpn2 (@eutt0 E R1 R2 RR) r rg).
-Proof.
-  split; apply eutt_cong_gcpn_; auto using symmetry.
-Qed.
-
-Definition eutt_eq_under_rr_impl_ :
+Global Instance eutt_eq_under_rr_impl :
   Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> flip impl) (eutt RR).
 Proof.
   repeat intro. red. rewrite H, H0. eauto with paco.
-Qed.
-
-Global Instance eutt_eq_under_rr_impl :
-  Proper (@eutt E _ _ eq ==> @eutt _ _ _ eq ==> iff) (eutt RR).
-Proof.
-  split; apply eutt_eq_under_rr_impl_; auto using symmetry.
 Qed.
 
 Global Instance eutt_bind {E U R} :
@@ -1184,7 +1304,7 @@ Proof.
 Qed.
 
 Global Instance eq_cong_eutt0 r rg r0 rg0:
-  Proper (eq_itree eq ==> eq_itree eq ==> iff)
+  Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
          (gcpn2 (@eutt0_ E R1 R2 RR (gcpn2 (eutt0 RR) r rg)) r0 rg0).
 Proof.
   split; apply eq_cong_eutt0_; auto; symmetry; auto.

@@ -69,7 +69,7 @@ Hint Unfold eutt_.
 
    [eutt t1 t2]: [t1] is equivalent to [t2] up to taus. *)
 
-Definition eutt t1 t2 := gcpn2 eutt_ bot2 bot2 t1 t2.
+Definition eutt t1 t2 := gcpn2 eutt_ bot3 bot2 bot2 t1 t2.
 Hint Unfold eutt.
 
 Lemma euttF_mon r r' s s' x y
@@ -87,7 +87,7 @@ Proof. red; intros. eapply euttF_mon; eauto. Qed.
 Hint Resolve monotone_eutt_ : paco.
 
 Lemma eutt_fold :
-  eutt <2= gcpn2 eutt_ bot2 bot2.
+  eutt <2= gcpn2 eutt_ bot3 bot2 bot2.
 Proof. intros. apply PR. Qed.
 Hint Resolve eutt_fold.
 

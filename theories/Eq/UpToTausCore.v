@@ -36,7 +36,7 @@ Qed.
 
 Global Instance Reflexive_eutt_param `{Reflexive _ RR}
        (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (gcpn2 (eutt_ RR) r rg).
+  Reflexive (gcpn2 (eutt_ RR) bot3 r rg).
 Proof.
   repeat intro.
   eapply gcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.

@@ -67,9 +67,9 @@ Inductive tausL_clo (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree 
 Hint Constructors tausL_clo.
 
 Lemma eutt_clo_tausL:
-  tausL_clo <3= cpn2 (eutt_ RR).
+  tausL_clo <3= cpn2 (eutt_ RR) bot3.
 Proof.
-  ucompat. econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto| |eauto].
   intros. destruct PR.
   red. red in REL. hinduction UNT before RR; intros.
   + eapply euttF_mon; eauto with rclo.
@@ -85,9 +85,9 @@ Inductive tausR_clo (r: itree E R1 -> itree E R2 -> Prop) : itree E R1 -> itree 
 Hint Constructors tausR_clo.
 
 Lemma eutt_clo_tausR:
-  tausR_clo <3= cpn2 (eutt_ RR).
+  tausR_clo <3= cpn2 (eutt_ RR) bot3.
 Proof.
-  ucompat. econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto| |eauto].
   intros. destruct PR.
   red. red in REL. hinduction UNT before RR; intros.
   + eapply euttF_mon; eauto with rclo.
@@ -149,22 +149,15 @@ Proof.
     + eapply IHINL. gunfold EQTAUS. eauto.
 Qed.
 
-Global Instance eutt_cong_gcpn_ {R1 R2 RR}:
+Global Instance eutt_cong_gcpn {R1 R2 RR}:
   Proper (eutt eq ==> eutt eq ==> flip impl)
-         (gcpn2 (@eutt_ E R1 R2 RR) bot2 bot2).
+         (gcpn2 (@eutt_ E R1 R2 RR) bot3 bot2 bot2).
 Proof.
   repeat intro. eapply eutt_trans; eauto; cycle 1.
   { intros; subst; eauto. }
   symmetry in H0.
   eapply eutt_trans; eauto.
   intros; subst; eauto.
-Qed.
-
-Global Instance eutt_cong_gcpn {R1 R2 RR}:
-  Proper (eutt eq ==> eutt eq ==> iff)
-         (gcpn2 (@eutt_ E R1 R2 RR) bot2 bot2).
-Proof.
-  split; eapply eutt_cong_gcpn_; auto using symmetry.
 Qed.
 
 End EUTT_transitivity.
