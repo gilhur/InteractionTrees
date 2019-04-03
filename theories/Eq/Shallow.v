@@ -76,7 +76,7 @@ Lemma unfold_bind {E R S}
     (ITree._bind k (fun t => ITree.bind t k) (observe t)).
 Proof. eauto. Qed.
 
-Instance observing_bind {E R S} :
+Global Instance observing_bind {E R S} :
   Proper (eq ==> observing eq ==> observing eq) (@ITree.bind' E R S).
 Proof.
   repeat intro; subst.

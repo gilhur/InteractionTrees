@@ -114,10 +114,10 @@ Section eq_itree.
       at above, bisimilarity can be intuitively thought of as
       equality. *)
   Definition eq_itree : itree E R1 -> itree E R2 -> Prop :=
-    gcpn2 eq_itree_ bot2 bot2.
+    gcpn2 eq_itree_ bot3 bot2 bot2.
 
   Lemma eq_itree_fold :
-    eq_itree <2= gcpn2 eq_itree_ bot2 bot2.
+    eq_itree <2= gcpn2 eq_itree_ bot3 bot2 bot2.
   Proof. intros. apply PR. Qed.
   Hint Resolve eq_itree_fold.
   
@@ -194,9 +194,9 @@ Inductive eq_itree_trans_clo (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eq_itree_trans_clo.
 
-Lemma eq_itree_clo_trans : eq_itree_trans_clo <3= cpn2 (eq_itree_ RR).
+Lemma eq_itree_clo_trans : eq_itree_trans_clo <3= cpn2 (eq_itree_ RR) bot3.
 Proof.
-  ucompat. econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto| |eauto].
   intros. dependent destruction PR.
   gunfold EQVl. gunfold EQVr. unfold_eq_itree.
   inversion EQVl;
@@ -220,9 +220,9 @@ Inductive eq_itree_bind_clo (r : itree E R1 -> itree E R2 -> Prop) :
 .
 Hint Constructors eq_itree_bind_clo.
 
-Lemma eq_itree_clo_bind : eq_itree_bind_clo <3= cpn2 (eq_itree_ RR).
+Lemma eq_itree_clo_bind : eq_itree_bind_clo <3= cpn2 (eq_itree_ RR) bot3.
 Proof.
-  ucompat. econstructor; [pmonauto|].
+  ucompat. econstructor; [pmonauto| |eauto].
   intros. dependent destruction PR.
   gunfold EQV. unfold_eq_itree.
   rewrite !unfold_bind; destruct EQV; simpobs.
@@ -303,7 +303,7 @@ Section eq_itree_eq.
 (** *** [eq_itree] is an equivalence relation *)
 
 Global Instance Reflexive_eq_itree_gen (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (gcpn2 (eq_itree_ eq) r rg).
+  Reflexive (gcpn2 (eq_itree_ eq) bot3 r rg).
 Proof.
   repeat intro. eapply gcpn2_mon_bot; eauto with paco.
   revert x. gcofix CIH; gstep; intros.
@@ -415,7 +415,7 @@ Proof.
   gclo eq_itree_clo_bind. eauto 7 with paco.
 Qed.
 
-Instance eq_itree_eq_bind {E R S} :
+Global Instance eq_itree_eq_bind {E R S} :
   Proper (pointwise_relation _ (eq_itree eq) ==>
           eq_itree eq ==>
           eq_itree eq) (@ITree.bind' E R S).
@@ -436,7 +436,7 @@ Proof.
   intros; gstep; constructor; auto.
 Qed.
 
-Instance eq_itree_eq_map {E R S} :
+Global Instance eq_itree_eq_map {E R S} :
   Proper (pointwise_relation _ eq ==>
           eq_itree eq ==>
           eq_itree eq) (@ITree.map E R S).
@@ -445,18 +445,11 @@ Proof.
   intros; subst; auto.
 Qed.
 
-Instance eq_itree_gcpn_ {E R1 R2 RS} r rg:
+Global Instance eq_itree_gcpn {E R1 R2 RS} r rg:
   Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
-         (gcpn2 (@eq_itree_ E R1 R2 RS) r rg).
+         (gcpn2 (@eq_itree_ E R1 R2 RS) bot3 r rg).
 Proof.
   repeat intro. gclo eq_itree_clo_trans. eauto.
-Qed.
-
-Instance eq_itree_gcpn {E R1 R2 RS} r rg:
-  Proper (eq_itree eq ==> eq_itree eq ==> iff)
-         (gcpn2 (@eq_itree_ E R1 R2 RS) r rg).
-Proof.
-  split; apply eq_itree_gcpn_; auto using symmetry.
 Qed.
 
 Lemma bind_ret2 {E R} :

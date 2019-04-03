@@ -201,7 +201,7 @@ Hint Resolve monotone_NoGets_ : paco.
    starting from bot1 (the least prediate).  We would use paco2 and bot2 for a
    binary relation, paco3 and bot3 for ternary, etc. *)
 
-Definition NoGets {S R} : itree (stateE S) R -> Prop := gcpn1 NoGets_ bot1 bot1. 
+Definition NoGets {S R} : itree (stateE S) R -> Prop := gcpn1 NoGets_ bot2 bot1 bot1. 
 
 
 (* Using a coinductive predicate -------------------------------------------- *)

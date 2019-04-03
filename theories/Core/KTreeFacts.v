@@ -595,7 +595,7 @@ Proof.
 Qed.
 
 Lemma eutt_loop_inv ot1 ot2 :
-  loop_preinv (go ot1) (go ot2) -> gcpn2 (suttF eq) bot2 bot2 ot1 ot2.
+  loop_preinv (go ot1) (go ot2) -> gcpn2 (suttF eq) bot3 bot2 bot2 ot1 ot2.
 Proof.
   intros HH.
   revert ot1 ot2 HH; gcofix self; gstep. intros.
@@ -678,6 +678,8 @@ Proof.
     + eapply sutt_loop; auto.
       repeat intro.
       apply eutt_sutt. apply symmetry; auto.
+    + eauto with paco.
+    + eauto with paco.
     + eauto with paco.
     + eauto with paco.
     + intros. induction PR; eauto. constructor. red. auto.

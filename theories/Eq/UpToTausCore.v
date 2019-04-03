@@ -43,7 +43,7 @@ Qed.
 
 Global Instance Reflexive_eutt0_param `{Reflexive _ RR} eutt
        (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (gcpn2 (eutt0_ RR eutt) r rg).
+  Reflexive (gcpn2 (eutt0_ RR eutt) bot3 r rg).
 Proof.
   repeat intro.
   eapply gcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.
@@ -53,7 +53,7 @@ Qed.
 
 Global Instance Reflexive_eutt_param `{Reflexive _ RR}
        (r rg: itree E R -> itree E R -> Prop) :
-  Reflexive (gcpn2 (eutt0 RR) r rg).
+  Reflexive (gcpn2 (eutt0 RR) bot3 r rg).
 Proof.
   repeat intro.
   eapply gcpn2_mon with (r:=bot2) (rg:=bot2); eauto with paco; try contradiction.
@@ -96,8 +96,8 @@ Proof.
 Qed.
 
 Lemma euttF_elim_tau_left {R1 R2} (RR: R1 -> R2 -> Prop) r (t1: itree E R1) (t2: itree E R2)
-    (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) (Tau t1) t2) :
-  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
+    (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot3 bot2 bot2) (Tau t1) t2) :
+  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot3 bot2 bot2) t1 t2.
 Proof.
   repeat red in REL |- *. simpl in *.
   remember (TauF t1) as ott1.
@@ -107,8 +107,8 @@ Proof.
 Qed.
 
 Lemma euttF_elim_tau_right {R1 R2} (RR: R1 -> R2 -> Prop) r (t1: itree E R1) (t2: itree E R2)
-    (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 (Tau t2)) :
-  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot2 bot2) t1 t2.
+    (REL : eutt0_ RR r (gcpn2 (eutt0_ RR r) bot3 bot2 bot2) t1 (Tau t2)) :
+  eutt0_ RR r (gcpn2 (eutt0_ RR r) bot3 bot2 bot2) t1 t2.
 Proof.
   repeat red in REL |- *. simpl in *.
   remember (TauF t2) as ott2.

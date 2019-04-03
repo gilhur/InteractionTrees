@@ -50,7 +50,7 @@ Inductive suttF (sutt: itree' E R1 -> itree' E R2 -> Prop) :
 Hint Constructors suttF.
 
 Definition sutt (t1 : itree E R1) (t2 : itree E R2) :=
-  gcpn2 suttF bot2 bot2 (observe t1) (observe t2).
+  gcpn2 suttF bot3 bot2 bot2 (observe t1) (observe t2).
 Hint Unfold sutt.
 
 End SUTT.
@@ -133,8 +133,8 @@ Qed.
 
 Lemma sutt_elim_tau_left' {E R1 R2} (RR : R1 -> R2 -> Prop) :
   forall (t1: itree E R1) (t2: itree E R2),
-    suttF RR (gcpn2 (suttF RR) bot2 bot2) (TauF t1) (observe t2) ->
-    suttF RR (gcpn2 (suttF RR) bot2 bot2) (observe t1) (observe t2).
+    suttF RR (gcpn2 (suttF RR) bot3 bot2 bot2) (TauF t1) (observe t2) ->
+    suttF RR (gcpn2 (suttF RR) bot3 bot2 bot2) (observe t1) (observe t2).
 Proof.
   intros.
   simpl in *.
@@ -217,20 +217,20 @@ Qed.
 
 Require Import Coq.Relations.Relations.
 
-Lemma eq_itree_vis_l {E R1 R2} {RR : R1 -> R2 -> Prop} {RC T}
+Lemma eq_itree_vis_r {E R1 R2} {RR : R1 -> R2 -> Prop} {RC T}
       (e : E T) (k : _ -> _)
       (it : itreeF E _ _)
-      (H : @eq_itreeF E R1 R2 RR RC (VisF e k) it)
+      (H : @eq_itreeF E R1 R2 RR RC it (VisF e k))
       :
         exists k', it = VisF e k' /\
-                 (forall x, RC (k x) (k' x)).
+                 (forall x, RC (k' x) (k x)).
 Proof.
   refine
-    match H in eq_itreeF _ _ x y
+    match H in eq_itreeF _ _ y x
           return
           match x return Prop with
           | @VisF _ _ _ u e k =>
-            exists k' : _ -> _, y = VisF e k' /\ (forall x : u, RC (k x) (k' x))
+            exists k' : _ -> _, y = VisF e k' /\ (forall x : u, RC (k' x) (k x))
           | _ => True
           end
     with
@@ -241,51 +241,44 @@ Qed.
 
 (* todo: this could be made stronger with eutt rather than eq_itree
  *)
-Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type}
-: Proper (pointwise_relation _ (pointwise_relation _ Basics.impl) ==>
-          eq_itree eq ==> eq_itree eq ==> Basics.impl)
-       (@sutt E R1 R2).
+Global Instance Proper_sutt {E : Type -> Type} {R1 R2 : Type} r
+: Proper (eq_itree eq ==> eq_itree eq ==> flip impl)
+       (@sutt E R1 R2 r).
 Proof.
   red. red.
-  unfold pointwise_relation.
-  unfold impl.
   intros x y Hxy.
-  red. red.
-  do 5 intro.
-  revert x0 y0 H x1 y1.
+  do 4 intro.
+  revert_until r.
   gcofix CIH; gstep.
   intros.
-  gunfold H0.
   gunfold H1.
-  gunfold H2.
-  repeat red in H0. repeat red in H1. repeat red in H2.
-  revert H0 H1.
-  genobs_clear y0 oy0. genobs_clear y1 oy1. genobs_clear x2 ox2. genobs_clear x3 ox3.
-  revert_until CIH.
-  induction 1; subst; intros.
-  { inv H0. inv H1. econstructor. eauto. }
-  { eapply eq_itree_vis_l in H0.
-    eapply eq_itree_vis_l in H1.
+  gunfold H0.
+  gunfold Hxy.
+  repeat red in H0. repeat red in Hxy.
+  move H1 before CIH. revert_until H1.
+  induction H1; intros; subst.
+  { inv H0. inv Hxy. econstructor. eauto. }
+  { eapply eq_itree_vis_r in H0.
+    eapply eq_itree_vis_r in Hxy.
     destruct H0 as [ ? [ ? ? ] ].
-    destruct H1 as [ ? [ ? ? ] ].
+    destruct Hxy as [ ? [ ? ? ] ].
     rewrite H. rewrite H1.
     constructor.
     intros.
     gbase.
-    specialize (H0 x2).
-    specialize (H2 x2).
+    specialize (H0 x3).
+    specialize (H2 x3).
     eapply CIH; eauto. }
-  { inversion H1; clear H1; subst.
+  { inversion H0; clear H0; subst.
     constructor.
     eapply IHsuttF; eauto.
     gunfold REL. eauto. }
-  { inversion H0; clear H0; subst.
+  { inversion Hxy; clear Hxy; subst.
     constructor.
     gbase.
-    change oy1 with (observe (go oy1)).
     eapply CIH.
     - eassumption.
     - instantiate (1:= go ot2).
-      gstep. eapply H1.
+      gstep. eapply H0.
     - eapply EQTAUS. }
 Qed.

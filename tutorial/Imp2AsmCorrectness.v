@@ -377,7 +377,7 @@ Section Eq_Locals.
 
   (** [eq_locals] is compatible with [eutt]. *)
   Global Instance eutt_eq_locals (Renv_ : _ -> _ -> Prop) {R} RR :
-    Proper (eutt eq ==> eutt eq ==> iff) (@eq_locals R R RR Renv_).
+    Proper (eutt eq ==> eutt eq ==> flip impl) (@eq_locals R R RR Renv_).
   Proof.
     repeat intro.
     split; repeat intro.
