@@ -34,7 +34,7 @@ Definition interp_match {E F R}
 (* N.B.: the guardedness of this definition relies on implementation
    details of [bind]. *)
 Definition interp {E F : Type -> Type} {R : Type}
-           (f : eff_hom E F) 
+           (f : eff_hom E F)
 : itree E R -> itree F R :=
   cofix hom_f t := interp_match f hom_f (observe t).
 
